@@ -24,17 +24,17 @@ int main( void ) {
 	
 	// func type
 	int funcType = 1;
-	int readType = 1;
-	int processId = 5;
+	int processId = 1;
 
 	// paramater
 	int layerLimit = 3;
-	int widthDeleted = 100;
+	int widthDeletedDefault = 100;
 	int colorDiffThred = 5;
 	int elePerTagThred = 300;
 	int bandWidthDefault = 50;
 	int keyFrameNumLimit = 50;
-	int badCutLimit = (int)(0.1 * widthDeleted);
+	int badCutLimit = (int)(0.1 * widthDeletedDefault);
+	vector<int> shotArr;
 
 	switch ( funcType ) {
 
@@ -43,54 +43,61 @@ int main( void ) {
 			bool state;
 			state = video2Frames( processId );
 			if ( !state ) return -2;
-			break;
+
+			// shot Cut
+			cout << " Shot Cut --ING" << endl;
+			segShotCut( shotArr );
+
+			cout << " Convert Process Finished !! " << endl;
+
 		}
 		case 1:{
 
 			int globalTime = clock();
 
-			// shot Cut
-			cout << " Shot Cut --ING" << endl;
-			vector<int> shotArr;
-			segShotCut( processId, shotArr );
+			getShotCut( shotArr );
 			
 			// resize shot
-			for ( int shotId = 1; shotId < (int)shotArr.size(); shotId++ ) {
+			for ( int shotId = 6; shotId < (int)shotArr.size(); shotId++ ) {
 
+				int frameStId = shotArr[shotId - 1];
+				int frameEdId = shotArr[shotId];
+
+				cout << " Process Shot From " << frameStId << " To " << frameEdId << " --ING" << endl << endl;
+
+				// read frames
 				vector<Mat> frames;
 				bool state;
-				state = readFrameStream( processId, shotArr[shotId - 1], shotArr[shotId], frames );
+				state = readFrameStream( frameStId, frameEdId, frames );
 				if ( !state ) return -2;
 
 				// calculate Energy
 				vector<Mat> pixelEnergy;
-				vector<Mat> edgeProtect;
 				vector<int> pixelTag;
 				int tagNum;
-
-				cout << " Calculate Pixel Tag --ING" << endl;
-				calcPixelTag( frames, pixelTag, tagNum, colorDiffThred, elePerTagThred );
-				cout << " Calculate Pixel Energy --ING" << endl;
-				calcPixelEnergy( frames, pixelTag, tagNum, pixelEnergy );
-				pixelTag.clear();
+				calcPixelTag( frames, pixelTag, tagNum, colorDiffThred, elePerTagThred, frameStId );
+				calcPixelEnergy( frames, pixelTag, tagNum, pixelEnergy, frameStId );
 
 				// temporal compress
-				cout << " Temporal Compress --ING" << endl;
 				vector<int> keyFrame;
 				timeCompress( pixelEnergy, keyFrame, keyFrameNumLimit );
 				preserveKeyData( keyFrame, frames, pixelEnergy );
 
 				// resize Video
-				calcEdgeProtect( frames, edgeProtect );
-				resizeVideo( keyFrame, frames, pixelEnergy, edgeProtect, layerLimit, widthDeleted, bandWidthDefault, badCutLimit, 0 );
-				scaleVideo( keyFrame, frames, pixelEnergy, widthDeleted );
-				rotateVideo( keyFrame, frames, pixelEnergy, 0 );
-				calcEdgeProtect( frames, edgeProtect );
-				resizeVideo( keyFrame, frames, pixelEnergy, edgeProtect, layerLimit, widthDeleted, bandWidthDefault, badCutLimit, 1 );
-				rotateVideo( keyFrame, frames, pixelEnergy, 1 );
+				int widthDeleted = widthDeletedDefault;
+				vector<Mat> edgeProtect;
+				for ( int c = 0; c < 2; c++ ) {
+					calcEdgeProtect( frames, edgeProtect );
+					resizeVideo( keyFrame, frames, pixelEnergy, edgeProtect, layerLimit, widthDeleted, bandWidthDefault, badCutLimit, frameStId, frameEdId, c );
+					scaleVideo( keyFrame, frames, pixelEnergy, widthDeleted, frameStId, frameEdId, c );
+					rotateVideo( keyFrame, frames, pixelEnergy, frameStId, frameEdId, c );
+				}
+
+				cout << endl;
+
 			}
 			// finished
-			cout << " Well done !!" << endl;
+			cout << " Shot Finished !! Well done !!" << endl;
 			globalTime = clock() - globalTime;
 			globalTime = (globalTime + 500) / 1000;
 			printf( " Global Time Used : %d min %d sec\n", globalTime / 60, globalTime % 60 );

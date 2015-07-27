@@ -12,7 +12,7 @@
 #include "baseFunction.h"
 
 void buildPyramid( vector< vector<Mat> > &pyramidFrames, vector< vector<Mat> > &pyramidPixelEnergy, vector< vector<Mat> > &pyramidEdgeProtect,
-				   vector<Mat> &frames, vector<Mat> &pixelEnergy, vector<Mat> &edgeProtect, int layerLimit ) {
+				   vector<Mat> &frames, vector<Mat> &pixelEnergy, vector<Mat> &edgeProtect, int layerLimit, bool isBuildPyramid ) {
 
 	pyramidFrames.clear();
 	pyramidPixelEnergy.clear();
@@ -54,6 +54,7 @@ void buildPyramid( vector< vector<Mat> > &pyramidFrames, vector< vector<Mat> > &
 		pyramidPixelEnergy.push_back( pixelEnergy );
 		pyramidEdgeProtect.push_back( edgeProtect );
 
+		if ( !isBuildPyramid ) break;
 	}
 
 	frames = pyramidFrames[0];

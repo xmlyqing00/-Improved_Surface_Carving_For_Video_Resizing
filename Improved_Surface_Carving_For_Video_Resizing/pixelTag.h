@@ -11,7 +11,9 @@
 
 #include "baseFunction.h"
 
-void calcPixelTag( vector<Mat> &frames, vector<int> &pixelTag, int &tagNum, int colorDiffThred, int elePerTagThred ) {
+void calcPixelTag( vector<Mat> &frames, vector<int> &pixelTag, int &tagNum, int colorDiffThred, int elePerTagThred, int frameStId ) {
+
+	cout << " Calculate Pixel Tag --ING" << endl;
 
 	int frameCount = frames.size();
 	Size frameSize = frames[0].size();
@@ -44,8 +46,8 @@ void calcPixelTag( vector<Mat> &frames, vector<int> &pixelTag, int &tagNum, int 
 		Canny( grayFrame, edges, 20, 60, 3, true );
 		pixelEdges.push_back(edges.clone());
 
-		sprintf( filename, "contour//%d.png", t );
-		imwrite( filename, edges );
+		//sprintf( filename, "contour//%d.png", t );
+		//imwrite( filename, edges );
 		//imshow( "canny", edges );
 		//waitKey( 33 );
 	}
@@ -185,7 +187,7 @@ void calcPixelTag( vector<Mat> &frames, vector<int> &pixelTag, int &tagNum, int 
 		}
 		//imshow( "tag", output );
 		//imshow( "origin", frames[t] );
-		sprintf( filename, "pixelTag//%d.png", t );
+		sprintf( filename, "pixelTag//%d.png", t + frameStId );
 		imwrite( filename, pixelTagOut );
 		//waitKey( 0 );
 	}

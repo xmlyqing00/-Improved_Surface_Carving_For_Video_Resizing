@@ -60,11 +60,15 @@ void drawBgMat( Mat &img, int t, vector<int> &pixelTag, vector<int> &tagLayer, M
 			switch ( tagLayer[nowTag] ) {
 				case 0:
 					rowData[x].val[0] = 220;
+					rowData[x].val[1] = min( rowData[x].val[1], (uchar)100 );
+					rowData[x].val[2] = min( rowData[x].val[1], (uchar)100 );
 					break;
 				case 1:
 					break;
 				case 2:
 					rowData[x].val[1] = 220;
+					rowData[x].val[0] = min( rowData[x].val[1], (uchar)100 );
+					rowData[x].val[2] = min( rowData[x].val[1], (uchar)100 );
 					break;
 				default:
 					break;
@@ -72,7 +76,8 @@ void drawBgMat( Mat &img, int t, vector<int> &pixelTag, vector<int> &tagLayer, M
 		}
 	}
 }
-void userInteraction( vector<int> &pixelTag, vector<Mat> &frames, vector<int> &tagLayer, int frameCount, Size frameSize ) {
+void userInteraction( vector<int> &pixelTag, vector<Mat> &frames, vector<int> &tagLayer, 
+					  int frameCount, Size frameSize, int frameStId ) {
 
 	char *selectWindowName = "Select Window";
 	char *tagWindowName = "Tag Window";
@@ -89,7 +94,7 @@ void userInteraction( vector<int> &pixelTag, vector<Mat> &frames, vector<int> &t
 
 	for ( int i = 0; i < frameCount; i++ ) {
 
-		sprintf( pngName, "pixelTag//%d.png", i );
+		sprintf( pngName, "pixelTag//%d.png", i + frameStId );
 		tagMat = imread( pngName );
 
 		drawBgMat( bgMat, i, pixelTag, tagLayer, frames[i], frameSize, frameCount );
@@ -101,10 +106,10 @@ void userInteraction( vector<int> &pixelTag, vector<Mat> &frames, vector<int> &t
 			waitKey( 0 );
 			readySelect = true;
 		} else {
-			if ( waitKey(33) != 32 && i != frameCount - 1 ) continue;
+			if ( waitKey( 33 ) != 32 && i != frameCount - 1 ) continue;
 		}
 
-		while ( waitKey(1) != 32 ) {
+		while ( waitKey( 1 ) != 32 ) {
 
 			if ( seed.first == 0 ) continue;
 
@@ -121,7 +126,7 @@ void userInteraction( vector<int> &pixelTag, vector<Mat> &frames, vector<int> &t
 			int newLayer;
 			switch ( seedStatus ) {
 
-				case 1:	
+				case 1:
 					newLayer = 0;
 					if ( tagLayer[seedTag] != newLayer ) {
 						reDraw = true;
@@ -161,7 +166,9 @@ void userInteraction( vector<int> &pixelTag, vector<Mat> &frames, vector<int> &t
 	destroyWindow( tagWindowName );
 }
 
-void calcPixelEnergy( vector<Mat> &frames, vector<int> &pixelTag, int tagNum, vector<Mat> &pixelEnergy ) {
+void calcPixelEnergy( vector<Mat> &frames, vector<int> &pixelTag, int tagNum, vector<Mat> &pixelEnergy, int frameStId ) {
+
+	cout << " Calculate Pixel Energy --ING" << endl;
 
 	int frameCount = frames.size();
 	Size frameSize = frames[0].size();
@@ -179,7 +186,7 @@ void calcPixelEnergy( vector<Mat> &frames, vector<int> &pixelTag, int tagNum, ve
 			for ( int x = 0; x < frameSize.width; x++ ) {
 
 				int nowTag = pixelTag[pixelNum++];
-		
+
 				tagCenterPerFrame[nowTag][t] += Point2i( x, y );
 				tagCountPerFrame[nowTag][t]++;
 
@@ -292,7 +299,7 @@ void calcPixelEnergy( vector<Mat> &frames, vector<int> &pixelTag, int tagNum, ve
 		tagRhoDeviation[i] = sqrt( tagRhoDeviation[i] / tagAvailableFrameCount );
 		tagThetaDeviation[i] = sqrt( tagThetaDeviation[i] / tagAvailableFrameCount );
 
-		
+
 		//maxTagCenterDeviation = max( maxTagCenterDeviation, tagCenterDeviation[i] );
 		//minTagCenterDeviation = min( minTagCenterDeviation, tagCenterDeviation[i] );
 		//maxTagCountDeviation = max( maxTagCountDeviation, tagCountDeviation[i] );
@@ -301,7 +308,7 @@ void calcPixelEnergy( vector<Mat> &frames, vector<int> &pixelTag, int tagNum, ve
 		//minTagRhoDeviation = min( minTagRhoDeviation, tagRhoDeviation[i] );
 		//maxTagThetaDeviation = max( maxTagThetaDeviation, tagThetaDeviation[i] );
 		//minTagThetaDeviation = min( minTagThetaDeviation, tagThetaDeviation[i] );
-		
+
 	}
 	/*
 	double deltaTagCenterDeviation, deltaTagCountDeviation, deltaTagRhoDeviation, deltaTagThetaDeviation;
@@ -312,16 +319,16 @@ void calcPixelEnergy( vector<Mat> &frames, vector<int> &pixelTag, int tagNum, ve
 
 	for ( int i = 0; i < tagNum; i++ ) {
 
-		double tempEnergy[5];
+	double tempEnergy[5];
 
-		tempEnergy[0] = (tagCenterDeviation[i] - minTagCenterDeviation) / deltaTagCenterDeviation;
-		tempEnergy[1] = (tagCountDeviation[i] - minTagCountDeviation) / deltaTagCountDeviation;
-		tempEnergy[2] = (tagRhoDeviation[i] - minTagRhoDeviation) / deltaTagRhoDeviation;
-		tempEnergy[3] = (tagThetaDeviation[i] - minTagThetaDeviation) / deltaTagThetaDeviation;
-		tempEnergy[4] = max( tempEnergy[0], max( tempEnergy[1], max( tempEnergy[2], tempEnergy[3] ) ) );
-		tagEnergy[i] = 0;
-		for ( int j = 0; j < 5; j++ ) tagEnergy[i] += tempEnergy[j];
-		tagEnergy[i] /= 5;
+	tempEnergy[0] = (tagCenterDeviation[i] - minTagCenterDeviation) / deltaTagCenterDeviation;
+	tempEnergy[1] = (tagCountDeviation[i] - minTagCountDeviation) / deltaTagCountDeviation;
+	tempEnergy[2] = (tagRhoDeviation[i] - minTagRhoDeviation) / deltaTagRhoDeviation;
+	tempEnergy[3] = (tagThetaDeviation[i] - minTagThetaDeviation) / deltaTagThetaDeviation;
+	tempEnergy[4] = max( tempEnergy[0], max( tempEnergy[1], max( tempEnergy[2], tempEnergy[3] ) ) );
+	tagEnergy[i] = 0;
+	for ( int j = 0; j < 5; j++ ) tagEnergy[i] += tempEnergy[j];
+	tagEnergy[i] /= 5;
 
 	}
 	*/
@@ -331,23 +338,23 @@ void calcPixelEnergy( vector<Mat> &frames, vector<int> &pixelTag, int tagNum, ve
 	minEnergy[0] = INF;
 
 	for ( int i = 0; i < tagNum; i++ ) {
-		maxEnergy[0] = max( maxEnergy[0], tagEnergy[i] );
-		minEnergy[0] = min( minEnergy[0], tagEnergy[i] );
+	maxEnergy[0] = max( maxEnergy[0], tagEnergy[i] );
+	minEnergy[0] = min( minEnergy[0], tagEnergy[i] );
 	}
 	deltaEnergy[0] = maxEnergy[0] - minEnergy[0];
 	*/
 	vector<int> tagLayer( tagNum, 1 );
 	/*
 	for ( int i = 0; i < tagNum; i++ ) {
-		tagEnergy[i] = deltaEnergy[0] > 0 ? (tagEnergy[i] - minEnergy[0]) / deltaEnergy[0] : 0.5;
-		
-		tagLayer[i] = 1;
-		if ( tagEnergy[i] < 0.1 ) tagLayer[i] = 0;
-		if ( tagEnergy[i] > 0.9 ) tagLayer[i] = 2;
+	tagEnergy[i] = deltaEnergy[0] > 0 ? (tagEnergy[i] - minEnergy[0]) / deltaEnergy[0] : 0.5;
+
+	tagLayer[i] = 1;
+	if ( tagEnergy[i] < 0.1 ) tagLayer[i] = 0;
+	if ( tagEnergy[i] > 0.9 ) tagLayer[i] = 2;
 	}
 	*/
-	
-	userInteraction( pixelTag, frames, tagLayer, frameCount, frameSize );
+
+	userInteraction( pixelTag, frames, tagLayer, frameCount, frameSize, frameStId );
 
 
 	double maxCent[layerLimit], maxCount[layerLimit], maxRho[layerLimit], maxTheta[layerLimit];
@@ -424,7 +431,7 @@ void calcPixelEnergy( vector<Mat> &frames, vector<int> &pixelTag, int tagNum, ve
 				break;
 		}
 		//if ( tagEnergy[i] < 0 || tagEnergy[i] > 1 ) cout << tagEnergy[i] << " " << layer << endl;
-		
+
 		//cout << " Tag Num : " << i << " cent " << tagCenterDeviation[i] << " count " << tagCountDeviation[i] << " rho " << tagRhoDeviation[i] << " theta " << tagThetaDeviation[i] << endl;
 		//cout << " energy " << tagEnergy[i] << endl;
 	}
@@ -448,7 +455,7 @@ void calcPixelEnergy( vector<Mat> &frames, vector<int> &pixelTag, int tagNum, ve
 
 	char pngName[100];
 	for ( int i = 0; i < frameCount; i++ ) {
-		sprintf( pngName, "pixelEnergy//%d.png", i );
+		sprintf( pngName, "pixelEnergy//%d.png", i + frameStId );
 		imwrite( pngName, pixelEnergy[i] );
 	}
 }
@@ -469,12 +476,12 @@ void calcEdgeProtect( vector<Mat> &frames, vector<Mat> &edgeProtect ) {
 		absGradX.convertTo( tempMat, CV_8UC1 );
 		edgeProtect.push_back( tempMat.clone() );
 	}
-
-	char pngName[100];
-	for ( int i = 0; i < frameCount; i++ ) {
+	/*
+		char pngName[100];
+		for ( int i = 0; i < frameCount; i++ ) {
 		sprintf( pngName, "edgeProtect//%d.png", i );
 		imwrite( pngName, edgeProtect[i] );
-	}
+		}*/
 }
 
 

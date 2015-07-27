@@ -94,7 +94,7 @@ int preMaxFlow( vector<int> &edgeHead, vector<typeEdge> &edge ) {
 	int T = edgeHead.size() - 1;
 	//int cnt0 = 0, cnt1 = 0;
 	int ans = 0;
-	
+
 	for ( int i = edgeHead[0]; i != -1; i = edge[i].next ) {
 
 		//cnt0++;
@@ -104,7 +104,7 @@ int preMaxFlow( vector<int> &edgeHead, vector<typeEdge> &edge ) {
 		while ( t != T ) {
 
 			for ( int p = edgeHead[t]; p != -1; p = edge[p].next ) {
-				
+
 				if ( edge[p].flag ) {
 					neckCap = min( neckCap, edge[p].w );
 					t = edge[p].y;
@@ -114,7 +114,7 @@ int preMaxFlow( vector<int> &edgeHead, vector<typeEdge> &edge ) {
 		}
 
 		if ( neckCap == 0 ) continue;
-	
+
 		ans += neckCap;
 		t = edge[i].y;
 		//if ( t == 1 ) cout << neckCap << endl;
@@ -138,11 +138,11 @@ int preMaxFlow( vector<int> &edgeHead, vector<typeEdge> &edge ) {
 	return ans;
 }
 int maxFlow( vector<int> &edgeHead, vector<typeEdge> &edge ) {
-	
+
 	int ans = 0;
 
 	ans += preMaxFlow( edgeHead, edge );
-	
+
 	int N = edgeHead.size();
 	int S = 0, T = N - 1;
 	vector<int> curEdge = edgeHead;
@@ -163,7 +163,7 @@ int maxFlow( vector<int> &edgeHead, vector<typeEdge> &edge ) {
 			int neckPoint;
 
 			for ( int i = S; i != T; i = edge[curEdge[i]].y ) {
-				
+
 				if ( neckFlow > edge[curEdge[i]].w ) {
 					neckFlow = edge[curEdge[i]].w;
 					neckPoint = i;
@@ -174,7 +174,7 @@ int maxFlow( vector<int> &edgeHead, vector<typeEdge> &edge ) {
 				edge[curEdge[i]].w -= neckFlow;
 				edge[curEdge[i] ^ 1].w += neckFlow;
 			}
-			
+
 			ans += neckFlow;
 			nowP = neckPoint;
 		}
@@ -194,7 +194,7 @@ int maxFlow( vector<int> &edgeHead, vector<typeEdge> &edge ) {
 			preEdge[edge[p0].y] = nowP;
 			nowP = edge[p0].y;
 		} else {
-		
+
 			gap[tag[nowP]]--;
 			if ( gap[tag[nowP]] == 0 ) break;
 			curEdge[nowP] = edgeHead[nowP];
@@ -208,25 +208,25 @@ int maxFlow( vector<int> &edgeHead, vector<typeEdge> &edge ) {
 			if ( nowP != S ) nowP = preEdge[nowP];
 		}
 	}
-	
+
 	/*
 	long long ans = 0;
 	vector<int> tag;
 
 	while ( bfsGraphForward( tag, edgeHead, edge ) ) {
 
-		int tans = 1;
-		while ( tans > 0 ) {
+	int tans = 1;
+	while ( tans > 0 ) {
 
-			tans = dfsDinic( 0, 0x7fffffff, tag, edgeHead, edge );
-			ans += tans;
-		}
+	tans = dfsDinic( 0, 0x7fffffff, tag, edgeHead, edge );
+	ans += tans;
+	}
 	}
 	*/
 	return ans;
 }
-	
-void calcSurfaceBand( vector<Mat> &frames, vector<int> &num2pos, vector<int> &edgeHead, vector<typeEdge> &edge, 
+
+void calcSurfaceBand( vector<Mat> &frames, vector<int> &num2pos, vector<int> &edgeHead, vector<typeEdge> &edge,
 					  vector< vector<int> > &removePts ) {
 
 	int frameCount = frames.size();
@@ -246,7 +246,7 @@ void calcSurfaceBand( vector<Mat> &frames, vector<int> &num2pos, vector<int> &ed
 
 			//cout << edge[p].flag << " " << tag[edge[p].y] << endl;
 			if ( edge[p].flag && tag[edge[p].y] == -1 ) {
-				
+
 				isRemoved = true;
 				break;
 			}
@@ -258,7 +258,7 @@ void calcSurfaceBand( vector<Mat> &frames, vector<int> &num2pos, vector<int> &ed
 		if ( !pos2txy( num2pos[i], t0, x0, y0, M, frameCount, frameSize ) ) continue;
 
 		removePts[t0][y0] = x0;
-		
+
 	}
 }
 
@@ -275,17 +275,17 @@ void surfaceCarving( vector<Mat> &frames, vector<Mat> &pixelEnergy, vector<Mat> 
 			int rest = removePts[t][y];
 
 			if ( linkHead[t][y] == -1 ) {
-				
+
 				oneLink.y = rest;
 				oneLink.next = -1;
 				linkHead[t][y] = link.size();
 				link.push_back( oneLink );
 				continue;
 			}
-			
+
 			oneLink = link[linkHead[t][y]];
 			if ( oneLink.y > rest ) {
-				
+
 				oneLink.y = rest;
 				oneLink.next = linkHead[t][y];
 				linkHead[t][y] = link.size();
@@ -295,11 +295,11 @@ void surfaceCarving( vector<Mat> &frames, vector<Mat> &pixelEnergy, vector<Mat> 
 				rest = rest - oneLink.y + 1;
 			}
 
-			for ( int p = linkHead[t][y]; p != -1; p = link[p].next) {
+			for ( int p = linkHead[t][y]; p != -1; p = link[p].next ) {
 
 				int nextP = link[p].next;
 				if ( nextP == -1 || (link[nextP].y - link[p].y - 1) >= rest ) {
-					
+
 					oneLink.y = link[p].y + rest;
 					oneLink.next = nextP;
 					link[p].next = link.size();
@@ -312,17 +312,17 @@ void surfaceCarving( vector<Mat> &frames, vector<Mat> &pixelEnergy, vector<Mat> 
 		}
 	}
 
-	FILE *file = fopen( "link.txt", "w" );
+	/*FILE *file = fopen( "link.txt", "w" );
 	for ( int t = 0; t < frameCount; t++ ) {
-		for ( int y = 0; y < frameSize.height; y++ ) {
-			fprintf( file, " t %d, y %d : ", t, y );
-			for ( int p = linkHead[t][y]; p != -1; p = link[p].next ) {
-				fprintf( file, "%d ", link[p].y );
-			}
-			fprintf( file, "\n" );
-		}
+	for ( int y = 0; y < frameSize.height; y++ ) {
+	fprintf( file, " t %d, y %d : ", t, y );
+	for ( int p = linkHead[t][y]; p != -1; p = link[p].next ) {
+	fprintf( file, "%d ", link[p].y );
 	}
-	fclose( file );
+	fprintf( file, "\n" );
+	}
+	}
+	fclose( file );*/
 	for ( int t = 0; t < frameCount; t++ ) {
 
 		for ( int y = 0; y < frameSize.height; y++ ) {
@@ -330,8 +330,8 @@ void surfaceCarving( vector<Mat> &frames, vector<Mat> &pixelEnergy, vector<Mat> 
 			Vec3b *rowDataFrame = frames[t].ptr<Vec3b>( y );
 			uchar *rowDataPixelEnergy = pixelEnergy[t].ptr<uchar>( y );
 			uchar *rowDataEdgeProtect = edgeProtect[t].ptr<uchar>( y );
-			
-			for ( int x = removePts[t][y] +1; x < frameSize.width; x++ ) {
+
+			for ( int x = removePts[t][y] + 1; x < frameSize.width; x++ ) {
 				rowDataFrame[x - 1] = rowDataFrame[x];
 				rowDataPixelEnergy[x - 1] = rowDataPixelEnergy[x];
 				rowDataEdgeProtect[x - 1] = rowDataEdgeProtect[x];

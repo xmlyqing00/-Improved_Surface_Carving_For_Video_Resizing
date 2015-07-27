@@ -21,7 +21,9 @@ bool cmp_index( const pair<double, int> &p0, const pair<double, int> &p1 ) {
 }
 
 void timeCompress( vector<Mat> &pixelEnergy, vector<int> &keyFrame, int keyFrameNumLimit ) {
-	
+
+	cout << " Temporal Compress --ING" << endl;
+
 	int frameCount = pixelEnergy.size();
 	Size frameSize = pixelEnergy[0].size();
 
@@ -49,7 +51,7 @@ void timeCompress( vector<Mat> &pixelEnergy, vector<int> &keyFrame, int keyFrame
 		convertScaleAbs( gradX, absGradX );
 		absGradX = 0.5*absGradX;
 		absGradX.convertTo( tempMat, CV_8UC1 );
-		
+
 		for ( int y = 0; y < rotSize.height; y++ ) {
 			for ( int x = 0; x < rotSize.width; x++ ) {
 				sum[x] += tempMat.ptr<uchar>( y )[x];
@@ -62,12 +64,12 @@ void timeCompress( vector<Mat> &pixelEnergy, vector<int> &keyFrame, int keyFrame
 	int m = min( (int)(0.1*n), keyFrameNumLimit );
 	//cout << m << endl;
 	for ( int x = 0; x < rotSize.width; x++ ) {
-		
+
 		double temp = sum[x];
 		temp = temp / (double)(rotCount * rotSize.height);
 		v[x] = temp + 0.01;
 	}
-	
+
 	v[0] = v[1];
 	vector< pair<double, int> > sortV;
 	for ( int i = n - 1; i > 0; i-- ) {
@@ -77,11 +79,11 @@ void timeCompress( vector<Mat> &pixelEnergy, vector<int> &keyFrame, int keyFrame
 		oneV.second = i;
 		sortV.push_back( oneV );
 	}
-		
+
 	sort( sortV.begin(), sortV.end(), cmp_v );
 	//for ( int i = 0; i < m; i++ ) cout << i << " " << sortV[i].first << " " << sortV[i].second << endl;
 	sort( sortV.begin(), sortV.begin() + m - 1, cmp_index );
-	
+
 	keyFrame.clear();
 	keyFrame.push_back( 0 );
 	for ( int i = 0; i < m - 1; i++ ) keyFrame.push_back( sortV[i].second );
@@ -91,7 +93,6 @@ void timeCompress( vector<Mat> &pixelEnergy, vector<int> &keyFrame, int keyFrame
 void preserveKeyData( vector<int> &keyFrame, vector<Mat> &frames, vector<Mat> &pixelEnergy ) {
 
 	int n = keyFrame.size();
-	char pngName[100];
 
 	cout << " Key Frame Num : " << n << endl;
 
@@ -103,17 +104,17 @@ void preserveKeyData( vector<int> &keyFrame, vector<Mat> &frames, vector<Mat> &p
 
 	frames.resize( n );
 	pixelEnergy.resize( n );
-	
+
 	//remove( "rmdir .\\keyEnergy" );
 	//remove( "rmdir .\\keyEdge" );
-
+	/*
 	for ( int i = 0; i < n; i++ ) {
-		
-		sprintf( pngName, "keyFrame//%d.png", keyFrame[i] );
-		imwrite( pngName, frames[i] );
-		sprintf( pngName, "keyEnergy//%d.png", keyFrame[i] );
-		imwrite( pngName, pixelEnergy[i] );
-	}
+
+	sprintf( pngName, "keyFrame//%d.png", keyFrame[i] );
+	imwrite( pngName, frames[i] );
+	sprintf( pngName, "keyEnergy//%d.png", keyFrame[i] );
+	imwrite( pngName, pixelEnergy[i] );
+	}*/
 }
 
 #endif

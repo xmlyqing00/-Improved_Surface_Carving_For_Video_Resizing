@@ -11,8 +11,9 @@
 
 #include "baseFunction.h"
 
-void resizeVideo( vector<int> &keyFrame, vector<Mat> &frames, vector<Mat> &pixelEnergy, vector<Mat> &edgeProtect, 
-				  int layerLimit, int &widthDeleted, int bandWidthDefault, int badCutLimit, int resizeType ) {
+void resizeVideo( vector<int> &keyFrame, vector<Mat> &frames, vector<Mat> &pixelEnergy, vector<Mat> &edgeProtect,
+				  int layerLimit, int &widthDeleted, int bandWidthDefault,
+				  int badCutLimit, int frameStId, int frameEdId, int resizeType ) {
 
 	cout << endl;
 	if ( resizeType ) {
@@ -38,6 +39,7 @@ void resizeVideo( vector<int> &keyFrame, vector<Mat> &frames, vector<Mat> &pixel
 	int cutCriterion = generalCrop( pixelEnergy, edgeProtect, widthDeleted );
 
 	int cutAlert = 0;
+	bool isBuildPyramid = true;
 
 	while ( surfaceDeletedCount < widthDeleted ) {
 
@@ -46,16 +48,30 @@ void resizeVideo( vector<int> &keyFrame, vector<Mat> &frames, vector<Mat> &pixel
 		surfaceDeletedCount++;
 		cout << "\n Cut " << surfaceDeletedCount << endl;
 
-		buildPyramid( pyramidFrames, pyramidPixelEnergy, pyramidEdgeProtect, frames, pixelEnergy, edgeProtect, layerLimit );
+		int bandLeft, bandWidth;
 
-		int bandLeft = 0;
-		int bandWidth = pyramidFrames[layerLimit - 1][0].cols;
-		bandWidthDefault = min( bandWidthDefault, bandWidth );
+		if ( (surfaceDeletedCount - 1) % 5 != 0 ) {
+			isBuildPyramid = false;
+		} else { 
+			isBuildPyramid = true; 
+		}
+		
+		buildPyramid( pyramidFrames, pyramidPixelEnergy, pyramidEdgeProtect, frames, pixelEnergy, edgeProtect, layerLimit, isBuildPyramid );
 
+		if ( isBuildPyramid ) {
+			bandLeft = 0;
+			bandWidth = pyramidFrames[layerLimit - 1][0].cols;
+			bandWidthDefault = min( bandWidthDefault, bandWidth );
+		}
+		
 		for ( int pyramidIndex = layerLimit - 1; pyramidIndex >= 0; pyramidIndex-- ) {
 
 			//cout << " >> In pyramid Index " << pyramidIndex << endl;
 			//int pyramidTime = clock();
+
+			if ( pyramidIndex > 0 && !isBuildPyramid ) continue;
+
+			printf( "%d %d -- %d %d\n", surfaceDeletedCount, pyramidIndex, bandLeft, bandWidth );
 
 			vector<int> num2pos;
 
@@ -65,7 +81,7 @@ void resizeVideo( vector<int> &keyFrame, vector<Mat> &frames, vector<Mat> &pixel
 			int cutEvaluate = maxFlow( edgeHead, edge );
 			//if ( surfaceDeletedCount == 3 ) {cutAlert = badCutLimit; break;}
 			if ( pyramidIndex == 0 ) {
-				cout << " Cut / Terminate Evaluate : " << cutEvaluate << " / " << cutCriterion << endl;
+				//cout << " Cut / Terminate Evaluate : " << cutEvaluate << " / " << cutCriterion << endl;
 				if ( cutEvaluate > cutCriterion ) cutAlert++;
 				if ( cutAlert >= badCutLimit ) break;
 			}
@@ -75,9 +91,10 @@ void resizeVideo( vector<int> &keyFrame, vector<Mat> &frames, vector<Mat> &pixel
 			removePts = vector< vector<int> >( pyramidFrameCount, vector<int>( pyramidFrameSize.height, 0 ) );
 			calcSurfaceBand( pyramidFrames[pyramidIndex], num2pos, edgeHead, edge, removePts );
 
-			bandWidth = bandWidthDefault;
-			settleBand( removePts, bandLeft, bandWidth, pyramidFrameSize, pyramidFrameCount );
-
+			if ( pyramidIndex > 0 ) {
+				bandWidth = bandWidthDefault;
+				settleBand( removePts, bandLeft, bandWidth, pyramidFrameSize, pyramidFrameCount );
+			}
 			//pyramidTime = clock() - pyramidTime;
 			//pyramidTime = (pyramidTime + 500) / 1000;
 			//printf( "  < In pyramid Time used : %d min %d sec\n", pyramidTime / 60, pyramidTime % 60 );
@@ -91,51 +108,72 @@ void resizeVideo( vector<int> &keyFrame, vector<Mat> &frames, vector<Mat> &pixel
 		surfaceTime = (surfaceTime + 500) / 1000;
 		printf( " Time Used : %d min %d sec\n", surfaceTime / 60, surfaceTime % 60 );
 	}
-	
+
 	if ( cutAlert >= badCutLimit ) surfaceDeletedCount--;
-		
+
 	widthDeleted = widthDeleted - surfaceDeletedCount;
-	saveFrame( keyFrame, resizeType, surfaceDeletedCount, frames, linkHead, link );
+	saveFrame( keyFrame, resizeType, surfaceDeletedCount, frames, linkHead, link, frameStId, frameEdId );
 
 	cout << endl;
 
 }
 
-void scaleVideo( vector<int> &keyFrame, vector<Mat> &frames, vector<Mat> &pixelEnergy, int &len ) {
+void scaleVideo( vector<int> &keyFrame, vector<Mat> &frames, vector<Mat> &pixelEnergy,
+				 int &len, int frameStId, int frameEdId, int resizeType ) {
 
-	cout << " Normally Scale --ING" << endl;
+	if ( resizeType ) {
+		cout << " Normally Scale Out Video --ING" << endl;
+	} else {
+		cout << " Normally Scale In Video --ING" << endl;
+	}
 
 	Mat mat;
 	Size frameSize = frames[0].size();
 	char pngName[100];
-	int height = (int)((double)frameSize.height * (frameSize.width - len) / frameSize.width);
-	if ( (frameSize.height & 1) ^ (height & 1) ) height++;
 
-	int i = 0;
-	
-	while ( true ) {
+	if ( resizeType ) {
 
-		sprintf( pngName, "shrinkResult//%d.png", i );
-		mat = imread( pngName );
-		if ( mat.empty() ) break;
+		for ( int i = frameStId; i < frameEdId; i++ ) {
 
-		resize( mat, mat, Size( frameSize.width - len, height ) );
-		sprintf( pngName, "resizeResult//%d.png", i++ );
-		imwrite( pngName, mat );
+			sprintf( pngName, "extendResult//%d.png", i );
+			mat = imread( pngName );
+			resize( mat, mat, Size( frameSize.width + len * 2, frameSize.height ) );
+			sprintf( pngName, "tempMat//%d.png", i );
+			imwrite( pngName, mat );
+		}
+
+		len = 0;
+
+	} else {
+
+		int height = (int)((double)frameSize.height * (frameSize.width - len) / frameSize.width);
+		if ( (frameSize.height & 1) ^ (height & 1) ) height++;
+
+		for ( int i = frameStId; i < frameEdId; i++ ) {
+
+			sprintf( pngName, "shrinkResult//%d.png", i );
+			mat = imread( pngName );
+			if ( mat.empty() ) break;
+
+			resize( mat, mat, Size( frameSize.width - len, height ) );
+			sprintf( pngName, "tempMat//%d.png", i );
+			imwrite( pngName, mat );
+		}
+
+		int frameCount = frames.size();
+		for ( int j = 0; j < frameCount; j++ ) {
+
+			resize( frames[j], frames[j], Size( frameSize.width - len, height ) );
+			resize( pixelEnergy[j], pixelEnergy[j], Size( frameSize.width - len, height ) );
+
+		}
+
+		len = (frameSize.height - height) / 2;
 	}
-
-	int frameCount = frames.size();
-	for ( int j = 0; j < frameCount; j++ ) {
-		
-		resize( frames[j], frames[j], Size( frameSize.width - len, height ) );
-		resize( pixelEnergy[j], pixelEnergy[j], Size( frameSize.width - len, height ) );
-
-	}
-
-	len = (frameSize.height - height) / 2;
 }
 
-void rotateVideo( vector<int> &keyFrame, vector<Mat> &frames, vector<Mat> &pixelEnergy, int fileType ) {
+void rotateVideo( vector<int> &keyFrame, vector<Mat> &frames, vector<Mat> &pixelEnergy,
+				  int frameStId, int frameEdId, int fileType ) {
 
 	cout << " Rotate Video --ING" << endl;
 
@@ -147,35 +185,29 @@ void rotateVideo( vector<int> &keyFrame, vector<Mat> &frames, vector<Mat> &pixel
 	int n = keyFrame.size();
 	int i = 0;
 	int t = 0;
-	while ( true ) {
+	for ( int i = frameStId; i < frameEdId; i++ ) {
 
-		if ( fileType ) {
-			sprintf( pngName, "extendResult//%d.png", i );
-		} else {
-			sprintf( pngName, "resizeResult//%d.png", i );
-		}
+		sprintf( pngName, "tempMat//%d.png", i );
 		originFrame = imread( pngName );
-		if ( originFrame.empty() ) break;
 
-		if ( t < n && i == keyFrame[t + 1] ) t++;
+		if ( t < n && (i - frameStId) == keyFrame[t + 1] ) t++;
 
 		for ( int y = 0; y < frameSize.height; y++ ) {
 			for ( int x = 0; x < frameSize.width; x++ ) {
 				rotateFrame.ptr<Vec3b>( x )[y] = originFrame.ptr<Vec3b>( y )[x];
 			}
 		}
-		
-		if ( i == keyFrame[t] ) frames[t] = rotateFrame.clone();
+
+		if ( (i - frameStId) == keyFrame[t] ) frames[t] = rotateFrame.clone();
 
 		if ( fileType ) {
 			sprintf( pngName, "output//%d.png", i );
 		} else {
-			sprintf( pngName, "rotateResult//%d.png", i );
+			sprintf( pngName, "tempMat//%d.png", i );
 		}
-		
+
 		imwrite( pngName, rotateFrame );
 
-		i++;
 	}
 
 	if ( fileType == 0 ) {
@@ -188,7 +220,7 @@ void rotateVideo( vector<int> &keyFrame, vector<Mat> &frames, vector<Mat> &pixel
 		for ( int t = 0; t < frameCount; t++ ) {
 			for ( int y = 0; y < frameSize.height; y++ ) {
 				for ( int x = 0; x < frameSize.width; x++ ) {
-					rotateEnergy.ptr<uchar>( x )[y] = pixelEnergy[t].ptr<uchar>( y )[x];					
+					rotateEnergy.ptr<uchar>( x )[y] = pixelEnergy[t].ptr<uchar>( y )[x];
 				}
 			}
 			pixelEnergy[t] = rotateEnergy.clone();
