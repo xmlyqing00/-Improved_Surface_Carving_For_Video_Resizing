@@ -12,7 +12,7 @@
 #include "baseFunction.h"
 
 bool video2Frames( int processId ) {
-	
+
 	cout << " Convert Video To Frames --ING" << endl;
 
 	VideoCapture cap;
@@ -42,7 +42,7 @@ bool video2Frames( int processId ) {
 	}
 
 	return true;
-	
+
 }
 bool readVideo( int processId, vector<Mat> &frames ) {
 
@@ -112,9 +112,9 @@ bool readFrameStream( int streamIndex, int streamEnd, vector<Mat> &frames ) {
 	return true;
 }
 
-void saveFrame( vector<int> &keyFrame, int funcType, int len, vector<Mat> &frames, 
+void saveFrame( vector<int> &keyFrame, int funcType, int len, vector<Mat> &frames,
 				vector<vector<int>> &linkHead, vector<typeLink> &link, int frameStId, int frameEdId ) {
-	
+
 	int n = keyFrame.size();
 	int t = 0;
 	char pngName[100];
@@ -122,13 +122,13 @@ void saveFrame( vector<int> &keyFrame, int funcType, int len, vector<Mat> &frame
 	switch ( funcType ) {
 
 		case 0:
-			
+
 			for ( int i = frameStId; i < frameEdId; i++ ) {
-			
+
 				sprintf( pngName, "frameStream//%d.png", i );
 				Mat originFrame = imread( pngName );
-				
-				if ( t < n && (i-frameStId) == keyFrame[t + 1] ) t++;
+
+				if ( t < n && (i - frameStId) == keyFrame[t + 1] ) t++;
 				Size frameSize = originFrame.size();
 				Mat surfaceFrame = originFrame.clone();
 				Mat resultFrame = Mat( frameSize.height, frameSize.width - len, CV_8UC3 );
@@ -150,9 +150,9 @@ void saveFrame( vector<int> &keyFrame, int funcType, int len, vector<Mat> &frame
 
 					}
 				}
-				
-				if ( (i-frameStId) == keyFrame[t] ) frames[t] = resultFrame.clone();
-				
+
+				if ( (i - frameStId) == keyFrame[t] ) frames[t] = resultFrame.clone();
+
 				sprintf( pngName, "shrinkCut//%d.png", i );
 				imwrite( pngName, surfaceFrame );
 
@@ -197,16 +197,16 @@ void saveFrame( vector<int> &keyFrame, int funcType, int len, vector<Mat> &frame
 
 							surfaceFrame.ptr<Vec3b>( y )[x] = Vec3b( 0, 0, 255 );
 							p = link[p].next;
-							continue; 
+							continue;
 						} else {
-							
+
 							resultFrame.ptr<Vec3b>( y )[newX++] = originFrame.ptr<Vec3b>( y )[x];
 						}
 
 					}
 				}
 
-				if ( (i - frameStId) ) frames[t] = resultFrame.clone( );
+				if ( (i - frameStId) ) frames[t] = resultFrame.clone();
 
 				frameSize = surfaceFrame.size();
 				Mat rotateFrame = Mat( frameSize.width, frameSize.height, CV_8UC3 );
@@ -221,7 +221,7 @@ void saveFrame( vector<int> &keyFrame, int funcType, int len, vector<Mat> &frame
 
 				sprintf( pngName, "extendResult//%d.png", i );
 				imwrite( pngName, resultFrame );
-				
+
 			}
 
 			break;
@@ -237,25 +237,17 @@ bool writeVideo( int processId ) {
 	videoName[4] = char( processId + 48 );
 	videoName[5] = '\0';
 	strcat( videoName, "Out.avi" );
-
 	char pngName[100];
-	Mat inputMat, tagMat, energyMat, shrinkMat, extendMat, outputMat;
-	Vec3b *rowDataMat0, *rowDataMat1;
-	char *windowName = "combineVideo";
-	namedWindow( windowName );
-	int seamWidth = 5;
+	Mat mat;
 
-	sprintf( pngName, "frameStream//%d.png", 0 );
-	inputMat = imread( pngName );
-	if ( inputMat.empty() ) return false;
+	sprintf( pngName, "combineStream//%d.png", 0 );
+	mat = imread( pngName );
+	if ( mat.empty() ) return false;
 
-	Size singleSize = inputMat.size();
-	Size combineSize;
-	combineSize.width = singleSize.width * 3 + seamWidth * 4;
-	combineSize.height = singleSize.height * 2 + seamWidth * 3;
+	Size frameSize = mat.size();
 
 	VideoWriter outputVideo;
-	outputVideo.open( videoName, CV_FOURCC( 'M', 'J', 'P', 'G' ), 25, combineSize );
+	outputVideo.open( videoName, CV_FOURCC( 'M', 'J', 'P', 'G' ), 30, frameSize );
 
 	if ( !outputVideo.isOpened() ) {
 
@@ -264,10 +256,40 @@ bool writeVideo( int processId ) {
 	}
 
 	for ( int i = 0; i < INF; i++ ) {
+		
+		cout << i << endl;
+		outputVideo << mat;
 
+		sprintf( pngName, "combineStream//%d.png", i );
+		mat = imread( pngName );
+		if ( mat.empty() ) return true;
+	}
+	return true;
+}
+void writeFrameStream() {
+
+	char pngName[100];
+	Mat inputMat, tagMat, energyMat, shrinkMat, extendMat, outputMat;
+	Vec3b *rowDataMat0, *rowDataMat1;
+	//char *windowName = "combineVideo";
+	//namedWindow( windowName );
+	int seamWidth = 5;
+
+	sprintf( pngName, "frameStream//%d.png", 0 );
+	inputMat = imread( pngName );
+	if ( inputMat.empty() ) return;
+
+	Size singleSize = inputMat.size();
+	Size combineSize;
+	combineSize.width = singleSize.width * 3 + seamWidth * 4;
+	combineSize.height = singleSize.height * 2 + seamWidth * 3;
+
+	for ( int i = 7121; i < INF; i++ ) {
+
+		cout << " Combine Frame " << i << endl;
 		sprintf( pngName, "pixelTag//%d.png", i );
 		tagMat = imread( pngName );
-		if ( tagMat.empty() ) break;
+		if ( tagMat.empty() ) break; 
 
 		sprintf( pngName, "pixelEnergy//%d.png", i );
 		energyMat = imread( pngName );
@@ -276,7 +298,7 @@ bool writeVideo( int processId ) {
 		sprintf( pngName, "shrinkCut//%d.png", i );
 		shrinkMat = imread( pngName );
 		if ( shrinkMat.empty() ) break;
-		
+
 		sprintf( pngName, "extendCut//%d.png", i );
 		extendMat = imread( pngName );
 		if ( extendMat.empty() ) break;
@@ -284,7 +306,7 @@ bool writeVideo( int processId ) {
 		sprintf( pngName, "output//%d.png", i );
 		outputMat = imread( pngName );
 		if ( outputMat.empty() ) break;
-		
+
 		Mat combineMat = Mat::zeros( combineSize, CV_8UC3 );
 		Vec3b borderColor = Vec3b( 255, 255, 255 );
 		for ( int y = 4; y < combineSize.height - 4; y++ ) {
@@ -302,14 +324,14 @@ bool writeVideo( int processId ) {
 			combineMat.ptr<Vec3b>( seamWidth * 2 + singleSize.height * 2 )[x] = borderColor;
 		}
 
-		
+
 		for ( int y = 0; y < singleSize.height; y++ ) {
 
 			rowDataMat0 = combineMat.ptr<Vec3b>( y + seamWidth );
 
 			rowDataMat1 = inputMat.ptr<Vec3b>( y );
 			for ( int x = 0; x < singleSize.width; x++ ) rowDataMat0[x + seamWidth] = rowDataMat1[x];
-			
+
 			rowDataMat1 = tagMat.ptr<Vec3b>( y );
 			for ( int x = 0; x < singleSize.width; x++ ) rowDataMat0[x + singleSize.width + seamWidth * 2] = rowDataMat1[x];
 
@@ -339,20 +361,36 @@ bool writeVideo( int processId ) {
 		}
 
 
-		sprintf( pngName, "combine//%d.png", i );
+		sprintf( pngName, "combineStream//%d.png", i );
 		imwrite( pngName, combineMat );
-		outputVideo << combineMat;
-		imshow( windowName, combineMat );
-		waitKey( 30 );
+		//imshow( windowName, combineMat );
+		//waitKey( 1 );
 
-		sprintf( pngName, "frameStream//%d.png", i );
+		sprintf( pngName, "frameStream//%d.png", i + 1 );
 		inputMat = imread( pngName );
 		if ( inputMat.empty() ) break;
 	}
 
 	destroyAllWindows();
 
-	return true;
 }
+void copyFrame( int st, int ed ) {
 
+	cout << " Copy Frames --ING" << endl;
+
+	Mat mat;
+	char pngName[100];
+
+	for ( int i = st; i < ed; i++ ) {
+
+		sprintf( pngName, "shrinkResult//%d.png", i );
+		mat = imread( pngName );
+		sprintf( pngName, "extendResult//%d.png", i );
+		imwrite( pngName, mat );
+		sprintf( pngName, "extendCut//%d.png", i );
+		imwrite( pngName, mat );
+		sprintf( pngName, "output//%d.png", i );
+		imwrite( pngName, mat );
+	}
+}
 #endif

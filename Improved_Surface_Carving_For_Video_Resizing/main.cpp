@@ -23,23 +23,23 @@ int main( void ) {
 	help();
 	
 	// func type
-	int funcType = 1;
-	int processId = 1;
+	int funcType = 0;
+	int processId = 0;
 
 	// paramater
 	int layerLimit = 3;
-	int widthDeletedDefault = 100;
+	int widthDeletedDefault = 70;
 	int colorDiffThred = 5;
 	int elePerTagThred = 300;
 	int bandWidthDefault = 50;
-	int keyFrameNumLimit = 50;
-	int badCutLimit = (int)(0.1 * widthDeletedDefault);
+	int keyFrameNumLimit = 30;
+	int badCutLimit = (int)(0.08 * widthDeletedDefault);
 	vector<int> shotArr;
 
 	switch ( funcType ) {
 
 		case 0:{
-			
+
 			bool state;
 			state = video2Frames( processId );
 			if ( !state ) return -2;
@@ -49,16 +49,15 @@ int main( void ) {
 			segShotCut( shotArr );
 
 			cout << " Convert Process Finished !! " << endl;
-
 		}
 		case 1:{
 
 			int globalTime = clock();
 
 			getShotCut( shotArr );
-			
+
 			// resize shot
-			for ( int shotId = 6; shotId < (int)shotArr.size(); shotId++ ) {
+			for ( int shotId = 87; shotId < (int)shotArr.size(); shotId++ ) {
 
 				int frameStId = shotArr[shotId - 1];
 				int frameEdId = shotArr[shotId];
@@ -87,13 +86,19 @@ int main( void ) {
 				int widthDeleted = widthDeletedDefault;
 				vector<Mat> edgeProtect;
 				for ( int c = 0; c < 2; c++ ) {
-					calcEdgeProtect( frames, edgeProtect );
-					resizeVideo( keyFrame, frames, pixelEnergy, edgeProtect, layerLimit, widthDeleted, bandWidthDefault, badCutLimit, frameStId, frameEdId, c );
-					scaleVideo( keyFrame, frames, pixelEnergy, widthDeleted, frameStId, frameEdId, c );
-					rotateVideo( keyFrame, frames, pixelEnergy, frameStId, frameEdId, c );
+
+					if ( widthDeleted > 0 ) {
+						calcEdgeProtect( frames, edgeProtect );
+						resizeVideo( keyFrame, frames, pixelEnergy, edgeProtect, layerLimit, widthDeleted, bandWidthDefault, badCutLimit, frameStId, frameEdId, c );
+						scaleVideo( keyFrame, frames, pixelEnergy, widthDeleted, frameStId, frameEdId, c );
+						rotateVideo( keyFrame, frames, pixelEnergy, frameStId, frameEdId, c );
+					} else {
+						copyFrame( frameStId, frameEdId );
+					}
 				}
 
 				cout << endl;
+				break;
 
 			}
 			// finished
@@ -105,6 +110,11 @@ int main( void ) {
 			break;
 		}
 		case 2:{
+
+			   // write frame stream
+			   writeFrameStream();
+		}
+		case 3:{
 			// write video
 			bool state = writeVideo( processId );
 			if ( !state ) return -2;

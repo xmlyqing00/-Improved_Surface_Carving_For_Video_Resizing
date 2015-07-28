@@ -15,6 +15,8 @@ void resizeVideo( vector<int> &keyFrame, vector<Mat> &frames, vector<Mat> &pixel
 				  int layerLimit, int &widthDeleted, int bandWidthDefault,
 				  int badCutLimit, int frameStId, int frameEdId, int resizeType ) {
 
+	if ( widthDeleted == 0 ) return;
+
 	cout << endl;
 	if ( resizeType ) {
 		cout << " Extend Video --ING" << endl;
@@ -40,6 +42,7 @@ void resizeVideo( vector<int> &keyFrame, vector<Mat> &frames, vector<Mat> &pixel
 
 	int cutAlert = 0;
 	bool isBuildPyramid = true;
+	int bandLeft, bandWidth;
 
 	while ( surfaceDeletedCount < widthDeleted ) {
 
@@ -47,8 +50,6 @@ void resizeVideo( vector<int> &keyFrame, vector<Mat> &frames, vector<Mat> &pixel
 
 		surfaceDeletedCount++;
 		cout << "\n Cut " << surfaceDeletedCount << endl;
-
-		int bandLeft, bandWidth;
 
 		if ( (surfaceDeletedCount - 1) % 5 != 0 ) {
 			isBuildPyramid = false;
@@ -58,11 +59,13 @@ void resizeVideo( vector<int> &keyFrame, vector<Mat> &frames, vector<Mat> &pixel
 		
 		buildPyramid( pyramidFrames, pyramidPixelEnergy, pyramidEdgeProtect, frames, pixelEnergy, edgeProtect, layerLimit, isBuildPyramid );
 
-		if ( isBuildPyramid ) {
+		if ( isBuildPyramid) {
 			bandLeft = 0;
 			bandWidth = pyramidFrames[layerLimit - 1][0].cols;
 			bandWidthDefault = min( bandWidthDefault, bandWidth );
 		}
+
+		//cout << surfaceDeletedCount << " " << bandLeft << endl;
 		
 		for ( int pyramidIndex = layerLimit - 1; pyramidIndex >= 0; pyramidIndex-- ) {
 
@@ -71,7 +74,7 @@ void resizeVideo( vector<int> &keyFrame, vector<Mat> &frames, vector<Mat> &pixel
 
 			if ( pyramidIndex > 0 && !isBuildPyramid ) continue;
 
-			printf( "%d %d -- %d %d\n", surfaceDeletedCount, pyramidIndex, bandLeft, bandWidth );
+			//printf( "%d %d -- %d %d\n", surfaceDeletedCount, pyramidIndex, bandLeft, bandWidth );
 
 			vector<int> num2pos;
 
@@ -81,7 +84,7 @@ void resizeVideo( vector<int> &keyFrame, vector<Mat> &frames, vector<Mat> &pixel
 			int cutEvaluate = maxFlow( edgeHead, edge );
 			//if ( surfaceDeletedCount == 3 ) {cutAlert = badCutLimit; break;}
 			if ( pyramidIndex == 0 ) {
-				//cout << " Cut / Terminate Evaluate : " << cutEvaluate << " / " << cutCriterion << endl;
+				cout << " Cut / Terminate Evaluate : " << cutEvaluate << " / " << cutCriterion << endl;
 				if ( cutEvaluate > cutCriterion ) cutAlert++;
 				if ( cutAlert >= badCutLimit ) break;
 			}
@@ -177,13 +180,11 @@ void rotateVideo( vector<int> &keyFrame, vector<Mat> &frames, vector<Mat> &pixel
 
 	cout << " Rotate Video --ING" << endl;
 
-	Size frameSize = frames[0].size();
+	Size frameSize;
 	char pngName[100];
-	Mat rotateFrame = Mat( frameSize.width, frameSize.height, CV_8UC3 );
-	Mat originFrame;
+	Mat rotateFrame, originFrame;
 
 	int n = keyFrame.size();
-	int i = 0;
 	int t = 0;
 	for ( int i = frameStId; i < frameEdId; i++ ) {
 
@@ -192,6 +193,8 @@ void rotateVideo( vector<int> &keyFrame, vector<Mat> &frames, vector<Mat> &pixel
 
 		if ( t < n && (i - frameStId) == keyFrame[t + 1] ) t++;
 
+		frameSize = originFrame.size();
+		rotateFrame = Mat( frameSize.width, frameSize.height, CV_8UC3 );
 		for ( int y = 0; y < frameSize.height; y++ ) {
 			for ( int x = 0; x < frameSize.width; x++ ) {
 				rotateFrame.ptr<Vec3b>( x )[y] = originFrame.ptr<Vec3b>( y )[x];

@@ -354,7 +354,7 @@ void calcPixelEnergy( vector<Mat> &frames, vector<int> &pixelTag, int tagNum, ve
 	}
 	*/
 
-	userInteraction( pixelTag, frames, tagLayer, frameCount, frameSize, frameStId );
+	//userInteraction( pixelTag, frames, tagLayer, frameCount, frameSize, frameStId );
 
 
 	double maxCent[layerLimit], maxCount[layerLimit], maxRho[layerLimit], maxTheta[layerLimit];
