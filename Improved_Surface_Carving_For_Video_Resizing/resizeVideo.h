@@ -49,7 +49,7 @@ void resizeVideo( vector<int> &keyFrame, vector<Mat> &frames, vector<Mat> &pixel
 		int surfaceTime = clock();
 
 		surfaceDeletedCount++;
-		cout << "\n Cut " << surfaceDeletedCount << endl;
+		//cout << "\n Cut " << surfaceDeletedCount << endl;
 
 		if ( (surfaceDeletedCount - 1) % 5 != 0 ) {
 			isBuildPyramid = false;
@@ -84,7 +84,7 @@ void resizeVideo( vector<int> &keyFrame, vector<Mat> &frames, vector<Mat> &pixel
 			int cutEvaluate = maxFlow( edgeHead, edge );
 			//if ( surfaceDeletedCount == 3 ) {cutAlert = badCutLimit; break;}
 			if ( pyramidIndex == 0 ) {
-				cout << " Cut / Terminate Evaluate : " << cutEvaluate << " / " << cutCriterion << endl;
+				//cout << " Cut / Terminate Evaluate : " << cutEvaluate << " / " << cutCriterion << endl;
 				if ( cutEvaluate > cutCriterion ) cutAlert++;
 				if ( cutAlert >= badCutLimit ) break;
 			}
@@ -109,7 +109,7 @@ void resizeVideo( vector<int> &keyFrame, vector<Mat> &frames, vector<Mat> &pixel
 
 		surfaceTime = clock() - surfaceTime;
 		surfaceTime = (surfaceTime + 500) / 1000;
-		printf( " Time Used : %d min %d sec\n", surfaceTime / 60, surfaceTime % 60 );
+		//printf( " Time Used : %d min %d sec\n", surfaceTime / 60, surfaceTime % 60 );
 	}
 
 	if ( cutAlert >= badCutLimit ) surfaceDeletedCount--;

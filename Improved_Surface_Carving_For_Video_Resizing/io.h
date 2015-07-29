@@ -122,7 +122,7 @@ void saveFrame( vector<int> &keyFrame, int funcType, int len, vector<Mat> &frame
 	switch ( funcType ) {
 
 		case 0:
-
+			for ( int i = 0; i < keyFrame.size(); i++ ) cout << keyFrame[i] << endl;
 			for ( int i = frameStId; i < frameEdId; i++ ) {
 
 				sprintf( pngName, "frameStream//%d.png", i );
@@ -132,6 +132,8 @@ void saveFrame( vector<int> &keyFrame, int funcType, int len, vector<Mat> &frame
 				Size frameSize = originFrame.size();
 				Mat surfaceFrame = originFrame.clone();
 				Mat resultFrame = Mat( frameSize.height, frameSize.width - len, CV_8UC3 );
+
+				cout << i - frameStId << " " << keyFrame[t] << endl;
 
 				for ( int y = 0; y < frameSize.height; y++ ) {
 
@@ -149,7 +151,7 @@ void saveFrame( vector<int> &keyFrame, int funcType, int len, vector<Mat> &frame
 						}
 
 					}
-				}
+				} 
 
 				if ( (i - frameStId) == keyFrame[t] ) frames[t] = resultFrame.clone();
 
@@ -284,7 +286,7 @@ void writeFrameStream() {
 	combineSize.width = singleSize.width * 3 + seamWidth * 4;
 	combineSize.height = singleSize.height * 2 + seamWidth * 3;
 
-	for ( int i = 7121; i < INF; i++ ) {
+	for ( int i = 0; i < INF; i++ ) {
 
 		cout << " Combine Frame " << i << endl;
 		sprintf( pngName, "pixelTag//%d.png", i );

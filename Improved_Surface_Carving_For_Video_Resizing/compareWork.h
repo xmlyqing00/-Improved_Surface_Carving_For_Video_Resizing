@@ -35,10 +35,10 @@ int generalCrop( vector<Mat> &pixelEnergy, vector<Mat> &edgeProtect, int widthDe
 	int maxEvaluate = evaluate[widthDeleted - 1];
 	int terminalEvaluate = cvRound( evaluate[0] + 0.8 * (maxEvaluate - evaluate[0]) );
 
-	cout << " Crop Avg Destroy : " << avgEvaluate << endl;
+	/*cout << " Crop Avg Destroy : " << avgEvaluate << endl;
 	cout << " Crop Mid Destroy : " << midEvaluate << endl;
 	cout << " Crop Max Destroy : " << maxEvaluate << endl;
-	cout << " Terminate Evaluate : " << terminalEvaluate << endl;
+	cout << " Terminate Evaluate : " << terminalEvaluate << endl;*/
 
 	return terminalEvaluate;
 

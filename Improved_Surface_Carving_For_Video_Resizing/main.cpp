@@ -23,7 +23,7 @@ int main( void ) {
 	help();
 	
 	// func type
-	int funcType = 0;
+	int funcType = 1;
 	int processId = 0;
 
 	// paramater
@@ -57,7 +57,7 @@ int main( void ) {
 			getShotCut( shotArr );
 
 			// resize shot
-			for ( int shotId = 87; shotId < (int)shotArr.size(); shotId++ ) {
+			for ( int shotId = 1; shotId < (int)shotArr.size(); shotId++ ) {
 
 				int frameStId = shotArr[shotId - 1];
 				int frameEdId = shotArr[shotId];
@@ -98,7 +98,6 @@ int main( void ) {
 				}
 
 				cout << endl;
-				break;
 
 			}
 			// finished
