@@ -9,15 +9,6 @@
 #ifndef BASE_FUNCTION
 #define BASE_FUNCTION
 
-#define _CRT_SECURE_NO_WARNINGS
-#define _CRTDBG_MAP_ALLOC
-
-int clock2, clock7;
-
-#include "GridCut\GridGraph_3D_6C_MT.h"
-//#include "GridCut\GridGraph_3D_6C.h"
-typedef GridGraph_3D_6C_MT<int, int, int> Grid;
-
 #include <opencv2\opencv.hpp>
 #include <opencv2\video\video.hpp>
 using namespace cv;
@@ -32,7 +23,7 @@ using namespace cv;
 #include <vector>
 #include <queue>
 #include <ctime>
-#include <crtdbg.h>
+
 using namespace std;
 
 //#define SHOW_GRAPH
@@ -94,8 +85,6 @@ public:
 	}
 };
 
-//_CrtMemState s1, s2, s3;
-
 void help( void ) {
 
 	printf( "===	Copyright (C) Lyq root#lyq.me\n"
@@ -117,14 +106,6 @@ inline int txy2pos( int t, int x, int y, int frameCount, const Size &frameSize )
 	if ( y < 0 || y >= frameSize.height ) return -1;
 	return t * frameSize.width * frameSize.height + y * frameSize.width + x + 1;
 
-}
-
-inline int txy2grid( int t, int x, int y, int width, int height, int depth ) {
-
-	if ( t < 0 || t >= depth ) return -1;
-	if ( x < 0 || x >= width ) return -1;
-	if ( y < 0 || y >= height ) return -1;
-	return t * width * height + y * width + x;
 }
 
 inline bool pos2txy( int num, int &t, int &x, int &y, int N, int frameCount, const Size &frameSize ) {

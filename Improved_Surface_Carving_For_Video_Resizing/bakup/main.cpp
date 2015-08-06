@@ -7,7 +7,6 @@
 */
 
 #include "baseFunction.h"
-
 #include "io.h"
 #include "buildGraph.h"
 #include "surfaceCarving.h"
@@ -22,22 +21,18 @@
 int main( void ) {
 
 	help();
-
+	
 	// func type
 	int funcType = 1;
-	int videoId = 2;
-	int firstFrameId = 6404;
+	int processId = 0;
 
 	// paramater
-	bool enableUser = false;
-	int threadsNum = 8;
-	int blockSize = 16;
 	int layerLimit = 3;
 	int widthDeletedDefault = 70;
 	int colorDiffThred = 5;
 	int elePerTagThred = 300;
 	int bandWidthDefault = 50;
-	double keyFrameNumLimit = 0.5;
+	int keyFrameNumLimit = 30;
 	int badCutLimit = (int)(0.08 * widthDeletedDefault);
 	vector<int> shotArr;
 
@@ -46,7 +41,7 @@ int main( void ) {
 		case 0:{
 
 			bool state;
-			state = video2Frames( videoId );
+			state = video2Frames( processId );
 			if ( !state ) return -2;
 
 			// shot Cut
@@ -58,29 +53,29 @@ int main( void ) {
 		case 1:{
 
 			int globalTime = clock();
+
 			getShotCut( shotArr );
 
-			// resize shot 
+			// resize shot
 			for ( int shotId = 1; shotId < (int)shotArr.size(); shotId++ ) {
-
-				if ( shotArr[shotId] <= firstFrameId ) continue;
 
 				int frameStId = shotArr[shotId - 1];
 				int frameEdId = shotArr[shotId];
 
 				cout << " Process Shot From " << frameStId << " To " << frameEdId << " --ING" << endl << endl;
-				int clock1 = clock();
+
 				// read frames
 				vector<Mat> frames;
-				bool state = readFrameStream( frameStId, frameEdId, frames );
+				bool state;
+				state = readFrameStream( frameStId, frameEdId, frames );
 				if ( !state ) return -2;
 
 				// calculate Energy
 				vector<Mat> pixelEnergy;
-				vector<int> pixelTag;  
+				vector<int> pixelTag;
 				int tagNum;
 				calcPixelTag( frames, pixelTag, tagNum, colorDiffThred, elePerTagThred, frameStId );
-				calcPixelEnergy( frames, pixelTag, tagNum, pixelEnergy, frameStId, enableUser );
+				calcPixelEnergy( frames, pixelTag, tagNum, pixelEnergy, frameStId );
 
 				// temporal compress
 				vector<int> keyFrame;
@@ -89,18 +84,12 @@ int main( void ) {
 
 				// resize Video
 				int widthDeleted = widthDeletedDefault;
-				vector<Mat> edgeProtect; 
+				vector<Mat> edgeProtect;
 				for ( int c = 0; c < 2; c++ ) {
 
 					if ( widthDeleted > 0 ) {
 						calcEdgeProtect( frames, edgeProtect );
-						//for ( int i = 0; i < keyFrame.size(); i++ ) cout << keyFrame[i] << endl;
-						clock2 = clock();
-						//cout << "2-1 " << clock2 - clock1 << endl;
-						resizeVideo( keyFrame, frames, pixelEnergy, edgeProtect, layerLimit, widthDeleted,
-									 bandWidthDefault, badCutLimit, frameStId, frameEdId, threadsNum, blockSize, c );
-						int clock8 = clock();
-						cout << "8-2 " <<clock8 - clock2 << endl;
+						resizeVideo( keyFrame, frames, pixelEnergy, edgeProtect, layerLimit, widthDeleted, bandWidthDefault, badCutLimit, frameStId, frameEdId, c );
 						scaleVideo( keyFrame, frames, pixelEnergy, widthDeleted, frameStId, frameEdId, c );
 						rotateVideo( keyFrame, frames, pixelEnergy, frameStId, frameEdId, c );
 					} else {
@@ -117,16 +106,16 @@ int main( void ) {
 			globalTime = (globalTime + 500) / 1000;
 			printf( " Global Time Used : %d min %d sec\n", globalTime / 60, globalTime % 60 );
 
-			//system( "pause" );
+			break;
 		}
 		case 2:{
 
-			// write frame stream
-			writeFrameStream();
+			   // write frame stream
+			   writeFrameStream();
 		}
 		case 3:{
 			// write video
-			bool state = writeVideo( videoId );
+			bool state = writeVideo( processId );
 			if ( !state ) return -2;
 			break;
 		}

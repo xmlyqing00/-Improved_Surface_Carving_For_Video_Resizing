@@ -76,7 +76,7 @@ void drawBgMat( Mat &img, int t, vector<int> &pixelTag, vector<int> &tagLayer, M
 		}
 	}
 }
-void userInteraction( vector<int> &pixelTag, vector<Mat> &frames, vector<int> &tagLayer,
+void userInteraction( vector<int> &pixelTag, vector<Mat> &frames, vector<int> &tagLayer, 
 					  int frameCount, Size frameSize, int frameStId ) {
 
 	char *selectWindowName = "Select Window";
@@ -166,7 +166,7 @@ void userInteraction( vector<int> &pixelTag, vector<Mat> &frames, vector<int> &t
 	destroyWindow( tagWindowName );
 }
 
-void calcPixelEnergy( vector<Mat> &frames, vector<int> &pixelTag, int tagNum, vector<Mat> &pixelEnergy, int frameStId, bool enableUser ) {
+void calcPixelEnergy( vector<Mat> &frames, vector<int> &pixelTag, int tagNum, vector<Mat> &pixelEnergy, int frameStId ) {
 
 	cout << " Calculate Pixel Energy --ING" << endl;
 
@@ -174,11 +174,10 @@ void calcPixelEnergy( vector<Mat> &frames, vector<int> &pixelTag, int tagNum, ve
 	Size frameSize = frames[0].size();
 	const int layerLimit = 3;
 
-	//vector< vector<Point2i> > tagCenterPerFrame( tagNum, vector<Point2i>( frameCount, Point2i( 0, 0 ) ) );
-	Mat tagCenterPerFrame = Mat_<Point2i>::zeros( tagNum, frameCount );
-	Mat tagCountPerFrame = Mat_<int>::zeros( tagNum, frameCount );
-	Mat tagRhoPerFrame = Mat_<double>::zeros( tagNum, frameCount );
-	Mat tagThetaPerFrame = Mat_<double>::zeros( tagNum, frameCount );
+	vector< vector<Point2i> > tagCenterPerFrame( tagNum, vector<Point2i>( frameCount, Point2i( 0, 0 ) ) );
+	vector< vector<int> > tagCountPerFrame( tagNum, vector<int>( frameCount, 0 ) );
+	vector< vector<double> > tagRhoPerFrame( tagNum, vector<double>( frameCount, 0 ) );
+	vector< vector<double> > tagThetaPerFrame( tagNum, vector<double>( frameCount, 0 ) );
 	int pixelNum;
 
 	pixelNum = 1;
@@ -188,8 +187,8 @@ void calcPixelEnergy( vector<Mat> &frames, vector<int> &pixelTag, int tagNum, ve
 
 				int nowTag = pixelTag[pixelNum++];
 
-				tagCenterPerFrame.ptr<Point2i>( nowTag )[t] += Point2i( x, y );
-				tagCountPerFrame.ptr<int>( nowTag )[t]++;
+				tagCenterPerFrame[nowTag][t] += Point2i( x, y );
+				tagCountPerFrame[nowTag][t]++;
 
 			}
 		}
@@ -198,9 +197,9 @@ void calcPixelEnergy( vector<Mat> &frames, vector<int> &pixelTag, int tagNum, ve
 	for ( int i = 0; i < tagNum; i++ ) {
 		for ( int t = 0; t < frameCount; t++ ) {
 
-			if ( tagCountPerFrame.ptr<int>( i )[t] > 0 ) {
-				tagCenterPerFrame.ptr<Point2i>( i )[t].x = cvRound( (double)tagCenterPerFrame.ptr<Point2i>( i )[t].x / tagCountPerFrame.ptr<int>( i )[t] );
-				tagCenterPerFrame.ptr<Point2i>( i )[t].y = cvRound( (double)tagCenterPerFrame.ptr<Point2i>( i )[t].y / tagCountPerFrame.ptr<int>( i )[t] );
+			if ( tagCountPerFrame[i][t] > 0 ) {
+				tagCenterPerFrame[i][t].x = cvRound( (double)tagCenterPerFrame[i][t].x / tagCountPerFrame[i][t] );
+				tagCenterPerFrame[i][t].y = cvRound( (double)tagCenterPerFrame[i][t].y / tagCountPerFrame[i][t] );
 			}
 		}
 	}
@@ -213,10 +212,10 @@ void calcPixelEnergy( vector<Mat> &frames, vector<int> &pixelTag, int tagNum, ve
 				int nowTag = pixelTag[pixelNum++];
 				double rho, theta;
 
-				if ( tagCountPerFrame.ptr<int>( nowTag )[t] == 0 ) continue;
-				cartesian2polar( tagCenterPerFrame.ptr<Point2i>( nowTag )[t], Point2i( x, y ), rho, theta );
-				tagRhoPerFrame.ptr<double>( nowTag )[t] += rho;
-				tagThetaPerFrame.ptr<double>( nowTag )[t] += theta;
+				if ( tagCountPerFrame[nowTag][t] == 0 ) continue;
+				cartesian2polar( tagCenterPerFrame[nowTag][t], Point2i( x, y ), rho, theta );
+				tagRhoPerFrame[nowTag][t] += rho;
+				tagThetaPerFrame[nowTag][t] += theta;
 				//tagThetaPerFrame[nowTag][t] += rho * theta;
 			}
 		}
@@ -225,10 +224,10 @@ void calcPixelEnergy( vector<Mat> &frames, vector<int> &pixelTag, int tagNum, ve
 	for ( int i = 0; i < tagNum; i++ ) {
 		for ( int t = 0; t < frameCount; t++ ) {
 
-			if ( tagCountPerFrame.ptr<int>( i )[t] == 0 ) continue;
-			tagThetaPerFrame.ptr<double>( i )[t] /= tagCountPerFrame.ptr<int>( i )[t];
-			//if ( tagRhoPerFrame.ptr<double>(i)[t] != 0 ) tagThetaPerFrame.ptr<double>(i)[t] /= tagRhoPerFrame.ptr<double>(i)[t];
-			tagRhoPerFrame.ptr<double>( i )[t] /= tagCountPerFrame.ptr<int>( i )[t];
+			if ( tagCountPerFrame[i][t] == 0 ) continue;
+			tagThetaPerFrame[i][t] /= tagCountPerFrame[i][t];
+			//if ( tagRhoPerFrame[i][t] != 0 ) tagThetaPerFrame[i][t] /= tagRhoPerFrame[i][t];
+			tagRhoPerFrame[i][t] /= tagCountPerFrame[i][t];
 		}
 	}
 
@@ -258,11 +257,11 @@ void calcPixelEnergy( vector<Mat> &frames, vector<int> &pixelTag, int tagNum, ve
 		int tagAvailableFrameCount = 0;
 		for ( int t = 0; t < frameCount; t++ ) {
 
-			if ( tagCountPerFrame.ptr<int>( i )[t] == 0 ) continue;
-			tagCenterAvg += tagCenterPerFrame.ptr<Point2i>( i )[t];
-			tagCountAvg += tagCountPerFrame.ptr<int>( i )[t];
-			tagRhoAvg += tagRhoPerFrame.ptr<double>( i )[t];
-			tagThetaAvg += tagThetaPerFrame.ptr<double>( i )[t];
+			if ( tagCountPerFrame[i][t] == 0 ) continue;
+			tagCenterAvg += tagCenterPerFrame[i][t];
+			tagCountAvg += tagCountPerFrame[i][t];
+			tagRhoAvg += tagRhoPerFrame[i][t];
+			tagThetaAvg += tagThetaPerFrame[i][t];
 			tagAvailableFrameCount++;
 		}
 
@@ -274,20 +273,20 @@ void calcPixelEnergy( vector<Mat> &frames, vector<int> &pixelTag, int tagNum, ve
 
 		for ( int t = 0; t < frameCount; t++ ) {
 
-			if ( tagCountPerFrame.ptr<int>( i )[t] == 0 ) continue;
+			if ( tagCountPerFrame[i][t] == 0 ) continue;
 			double rho, theta;
-			cartesian2polar( tagCenterAvg, tagCenterPerFrame.ptr<Point2i>( i )[t], rho, theta );
+			cartesian2polar( tagCenterAvg, tagCenterPerFrame[i][t], rho, theta );
 			tagCenterDeviation[i] += sqr( rho );
-			tagCountDeviation[i] += sqr( tagCountAvg - tagCountPerFrame.ptr<int>( i )[t] );
-			tagRhoDeviation[i] += sqr( tagRhoAvg - tagRhoPerFrame.ptr<double>( i )[t] );
-			tagThetaDeviation[i] += sqr( tagThetaAvg - tagThetaPerFrame.ptr<double>( i )[t] );
+			tagCountDeviation[i] += sqr( tagCountAvg - tagCountPerFrame[i][t] );
+			tagRhoDeviation[i] += sqr( tagRhoAvg - tagRhoPerFrame[i][t] );
+			tagThetaDeviation[i] += sqr( tagThetaAvg - tagThetaPerFrame[i][t] );
 		}
-		if ( tagCountPerFrame.ptr<int>( i )[0] == 0 ) {
+		if ( tagCountPerFrame[i][0] == 0 ) {
 			tagCountDeviation[i] += sqr( tagCountAvg );
 			tagRhoDeviation[i] += sqr( tagRhoAvg );
 			tagAvailableFrameCount++;
 		}
-		if ( tagCountPerFrame.ptr<int>( i )[frameCount - 1] == 0 ) {
+		if ( tagCountPerFrame[i][frameCount - 1] == 0 ) {
 			tagCountDeviation[i] += sqr( tagCountAvg );
 			tagRhoDeviation[i] += sqr( tagRhoAvg );
 			tagAvailableFrameCount++;
@@ -355,9 +354,7 @@ void calcPixelEnergy( vector<Mat> &frames, vector<int> &pixelTag, int tagNum, ve
 	}
 	*/
 
-	if ( enableUser ) {
-		userInteraction( pixelTag, frames, tagLayer, frameCount, frameSize, frameStId );
-	}
+	//userInteraction( pixelTag, frames, tagLayer, frameCount, frameSize, frameStId );
 
 
 	double maxCent[layerLimit], maxCount[layerLimit], maxRho[layerLimit], maxTheta[layerLimit];

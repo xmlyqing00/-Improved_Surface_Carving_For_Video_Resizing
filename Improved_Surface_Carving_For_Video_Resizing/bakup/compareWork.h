@@ -15,22 +15,19 @@ int generalCrop( vector<Mat> &pixelEnergy, vector<Mat> &edgeProtect, int widthDe
 
 	int frameCount = pixelEnergy.size();
 	Size frameSize = pixelEnergy[0].size();
-	int fc = edgeProtect.size();
-	Size fs = edgeProtect[0].size();
 
 	vector<int> evaluate( frameSize.width, 0 );
 	int step = frameSize.width / widthDeleted;
 	for ( int t = 0; t < frameCount; t++ ) {
 		for ( int y = 0; y < frameSize.height; y++ ) {
-			for ( int x = 0; x < frameSize.width; x++ ) {
+			for ( int x = 0; x < frameSize.width; x ++ ) {
 				evaluate[x] += pixelEnergy[t].ptr<uchar>( y )[x] + edgeProtect[t].ptr<uchar>( y )[x];
-				//_ASSERT( _CrtCheckMemory() );
 			}
 		}
 	}
 
-	std::sort( evaluate.begin(), evaluate.end() );
-
+	sort( evaluate.begin(), evaluate.end() );
+	
 	int avgEvaluate = 0;
 	for ( int i = 0; i < widthDeleted; i++ ) avgEvaluate += evaluate[i];
 	avgEvaluate /= widthDeleted;

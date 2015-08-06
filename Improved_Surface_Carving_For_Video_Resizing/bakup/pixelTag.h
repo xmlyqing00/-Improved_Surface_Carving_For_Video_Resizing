@@ -18,9 +18,9 @@ void calcPixelTag( vector<Mat> &frames, vector<int> &pixelTag, int &tagNum, int 
 	int frameCount = frames.size();
 	Size frameSize = frames[0].size();
 	int N = frameCount * frameSize.height * frameSize.width + 2;
-	const int route[10][3] = {
-		{ -1, 0, 0 }, { 1, 0, 0 }, { 0, 0, 1 }, { 0, 1, 0 }, { 0, 0, -1 },
-		{ 0, -1, 0 }, { 0, 1, 1 }, { 0, 1, -1 }, { 0, -1, -1 }, { 0, -1, 1 } };
+	const int route[10][3] = { 
+		{ -1, 0, 0 }, { 1, 0, 0 }, { 0, 0, 1 }, { 0, 1, 0 }, { 0, 0, -1 }, 
+		{ 0, -1, 0 }, { 0, 1, 1 }, { 0, 1, -1 }, { 0, -1, -1 }, { 0, -1, 1 }};
 	Mat edges;
 	vector<Vec3b> pixelColor;
 	vector<Mat> pixelEdges;
@@ -30,21 +30,21 @@ void calcPixelTag( vector<Mat> &frames, vector<int> &pixelTag, int &tagNum, int 
 	//queue<int> que;
 	typeQue &que = *(new typeQue);
 	char filename[100];
-
+	
 	pixelColor.push_back( 0 );
 	for ( int t = 0; t < frameCount; t++ ) {
 
 		for ( int y = 0; y < frameSize.height; y++ ) {
 			Vec3b *rowData = frames[t].ptr<Vec3b>( y );
 			for ( int x = 0; x < frameSize.width; x++ ) {
-				pixelColor.push_back( rowData[x] );
+				pixelColor.push_back(rowData[x]);
 			}
 		}
 
 		Mat grayFrame;
 		cvtColor( frames[t], grayFrame, COLOR_RGB2GRAY );
 		Canny( grayFrame, edges, 20, 60, 3, true );
-		pixelEdges.push_back( edges.clone() );
+		pixelEdges.push_back(edges.clone());
 
 		//sprintf( filename, "contour//%d.png", t );
 		//imwrite( filename, edges );
@@ -55,7 +55,7 @@ void calcPixelTag( vector<Mat> &frames, vector<int> &pixelTag, int &tagNum, int 
 	int pixelNum, nowPixelNum, nextPixelNum, nowT, nowX, nowY, nextT, nextX, nextY;
 	int elePerTagCount;
 	//int colorGradualThred = colorDiffThred / 5;
-	tagNum = 0;
+   	tagNum = 0;
 
 	for ( int t = 0; t < frameCount; t++ ) {
 		for ( int y = 0; y < frameSize.height; y++ ) {
@@ -88,10 +88,10 @@ void calcPixelTag( vector<Mat> &frames, vector<int> &pixelTag, int &tagNum, int 
 						if ( nextPixelNum == -1 ) continue;
 						if ( pixelTag[nextPixelNum] != -1 ) continue;
 						if ( pixelEdges[nextT].ptr<uchar>( nextY )[nextX] == 255 ) continue;
-
+						
 						if ( k > 1 && colorDiff( pixelColor[nowPixelNum], pixelColor[nextPixelNum] ) > colorDiffThred ) continue;
 						if ( k < 2 && colorDiff( pixelColor[nowPixelNum], pixelColor[nextPixelNum] ) > 1 ) continue;
-						//if ( colorDiff( pixelColor[nowPixelNum], pixelColor[nextPixelNum] ) > colorGradualThred ) continue;
+							//if ( colorDiff( pixelColor[nowPixelNum], pixelColor[nextPixelNum] ) > colorGradualThred ) continue;
 
 						pixelTag[nextPixelNum] = pixelTag[nowPixelNum];
 						que.push( nextPixelNum );
@@ -111,7 +111,7 @@ void calcPixelTag( vector<Mat> &frames, vector<int> &pixelTag, int &tagNum, int 
 
 	tagNum = tagNumTemp;
 
-	for ( int i = 1; i < N - 1; i++ ) {
+	for ( int i = 1; i < N-1; i++ ) {
 		if ( pixelTag[i] != -1 ) pixelTag[i] = tagReplace[pixelTag[i]];
 
 	}
@@ -139,7 +139,7 @@ void calcPixelTag( vector<Mat> &frames, vector<int> &pixelTag, int &tagNum, int 
 			}
 		}
 	}
-
+	
 	while ( !que.empty() ) {
 
 		nowPixelNum = que.front();
@@ -161,7 +161,7 @@ void calcPixelTag( vector<Mat> &frames, vector<int> &pixelTag, int &tagNum, int 
 			que.push( nextPixelNum );
 		}
 	}
-
+	
 	delete &que;
 
 	// show tag region

@@ -226,9 +226,11 @@ int maxFlow( vector<int> &edgeHead, vector<typeEdge> &edge ) {
 	return ans;
 }
 
-void calcSurfaceBand( int frameCount, Size frameSize, vector<int> &num2pos, vector<int> &edgeHead, vector<typeEdge> &edge,
+void calcSurfaceBand( vector<Mat> &frames, vector<int> &num2pos, vector<int> &edgeHead, vector<typeEdge> &edge,
 					  vector< vector<int> > &removePts ) {
 
+	int frameCount = frames.size();
+	Size frameSize = frames[0].size();
 	int N = edgeHead.size();
 	int M = frameSize.width * frameSize.height * frameCount + 2;
 	bool isRemoved;
@@ -260,31 +262,8 @@ void calcSurfaceBand( int frameCount, Size frameSize, vector<int> &num2pos, vect
 	}
 }
 
-void calcSurfaceBand_Grid( int depth, int height, int width, int bandLeft,
-						   Grid* grid, Mat &removePts ) {
-
-	for ( int t = 0; t < depth; t++ ) {
-		for ( int y = 0; y < height; y++ ) {
-
-			int searchLeft = 0, searchRight = width - 1, searchMid;
-
-			while ( searchLeft < searchRight ) {
-
-				searchMid = (searchLeft + searchRight + 1) >> 1;
-				if ( grid->get_segment( grid->node_id( searchMid, y, t ) ) == 0 ) {
-					searchLeft = searchMid;
-				} else {
-					searchRight = searchMid - 1;
-				}
-			}
-
-			removePts.ptr<int>( t )[y] = bandLeft + searchLeft;
-		}
-	}
-}
-
-void surfaceCarving( vector<Mat> &frames, vector<Mat> &pixelEnergy, vector<Mat> &edgeProtect, Mat &removePts,
-					 Mat &linkHead, vector<typeLink> &link ) {
+void surfaceCarving( vector<Mat> &frames, vector<Mat> &pixelEnergy, vector<Mat> &edgeProtect, vector< vector<int> > &removePts,
+					 vector<vector<int>> &linkHead, vector<typeLink> &link ) {
 
 	int frameCount = frames.size();
 	Size frameSize = frames[0].size();
@@ -293,30 +272,30 @@ void surfaceCarving( vector<Mat> &frames, vector<Mat> &pixelEnergy, vector<Mat> 
 	for ( int t = 0; t < frameCount; t++ ) {
 		for ( int y = 0; y < frameSize.height; y++ ) {
 
-			int rest = removePts.ptr<int>( t )[y];
+			int rest = removePts[t][y];
 
-			if ( linkHead.ptr<int>( t )[y] == -1 ) {
+			if ( linkHead[t][y] == -1 ) {
 
 				oneLink.y = rest;
 				oneLink.next = -1;
-				linkHead.ptr<int>( t )[y] = link.size();
+				linkHead[t][y] = link.size();
 				link.push_back( oneLink );
 				continue;
 			}
 
-			oneLink = link[linkHead.ptr<int>( t )[y]];
+			oneLink = link[linkHead[t][y]];
 			if ( oneLink.y > rest ) {
 
 				oneLink.y = rest;
-				oneLink.next = linkHead.ptr<int>( t )[y];
-				linkHead.ptr<int>( t )[y] = link.size();
+				oneLink.next = linkHead[t][y];
+				linkHead[t][y] = link.size();
 				link.push_back( oneLink );
 				continue;
 			} else {
 				rest = rest - oneLink.y + 1;
 			}
 
-			for ( int p = linkHead.ptr<int>( t )[y]; p != -1; p = link[p].next ) {
+			for ( int p = linkHead[t][y]; p != -1; p = link[p].next ) {
 
 				int nextP = link[p].next;
 				if ( nextP == -1 || (link[nextP].y - link[p].y - 1) >= rest ) {
@@ -337,7 +316,7 @@ void surfaceCarving( vector<Mat> &frames, vector<Mat> &pixelEnergy, vector<Mat> 
 	for ( int t = 0; t < frameCount; t++ ) {
 	for ( int y = 0; y < frameSize.height; y++ ) {
 	fprintf( file, " t %d, y %d : ", t, y );
-	for ( int p = linkHead.ptr<int>(t)[y]; p != -1; p = link[p].next ) {
+	for ( int p = linkHead[t][y]; p != -1; p = link[p].next ) {
 	fprintf( file, "%d ", link[p].y );
 	}
 	fprintf( file, "\n" );
@@ -352,7 +331,7 @@ void surfaceCarving( vector<Mat> &frames, vector<Mat> &pixelEnergy, vector<Mat> 
 			uchar *rowDataPixelEnergy = pixelEnergy[t].ptr<uchar>( y );
 			uchar *rowDataEdgeProtect = edgeProtect[t].ptr<uchar>( y );
 
-			for ( int x = removePts.ptr<int>( t )[y] + 1; x < frameSize.width; x++ ) {
+			for ( int x = removePts[t][y] + 1; x < frameSize.width; x++ ) {
 				rowDataFrame[x - 1] = rowDataFrame[x];
 				rowDataPixelEnergy[x - 1] = rowDataPixelEnergy[x];
 				rowDataEdgeProtect[x - 1] = rowDataEdgeProtect[x];

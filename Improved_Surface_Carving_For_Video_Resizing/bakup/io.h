@@ -10,6 +10,7 @@
 #define IO
 
 #include "baseFunction.h"
+
 bool video2Frames( int processId ) {
 
 	cout << " Convert Video To Frames --ING" << endl;
@@ -19,7 +20,7 @@ bool video2Frames( int processId ) {
 	strcpy( videoName, "test" );
 	videoName[4] = char( processId + 48 );
 	videoName[5] = '\0';
-	strcat( videoName, "In.mp4" );
+	strcat( videoName, "In.mkv" );
 
 	if ( !cap.open( videoName ) ) {
 		cout << "!!! Could not open the output video for reading!" << endl;
@@ -38,14 +39,11 @@ bool video2Frames( int processId ) {
 		imwrite( matName, inputFrame );
 
 		count++;
-
-		if ( count >= 12000 ) break;
 	}
 
 	return true;
 
 }
-
 bool readVideo( int processId, vector<Mat> &frames ) {
 
 	VideoCapture cap;
@@ -83,14 +81,15 @@ bool readVideo( int processId, vector<Mat> &frames ) {
 		//if ( count == 200 ) break;
 	}
 
+	/*
+	union {
+	int value;
+	char code[4];
+	} getFourCC;
 
-	//union {
-	//int value;
-	//char code[4];
-	//} getFourCC;
-
-	//getFourCC.value = static_cast<int>(cap.get( CV_CAP_PROP_FOURCC ));
-	//for ( int i = 0; i < 4; i++ ) cout << getFourCC.code[i] << endl;
+	getFourCC.value = static_cast<int>(cap.get( CV_CAP_PROP_FOURCC ));
+	for ( int i = 0; i < 4; i++ ) cout << getFourCC.code[i] << endl;
+	*/
 
 	return true;
 }
@@ -114,47 +113,45 @@ bool readFrameStream( int streamIndex, int streamEnd, vector<Mat> &frames ) {
 }
 
 void saveFrame( vector<int> &keyFrame, int funcType, int len, vector<Mat> &frames,
-				Mat &linkHead, vector<typeLink> &link, int frameStId, int frameEdId ) {
+				vector<vector<int>> &linkHead, vector<typeLink> &link, int frameStId, int frameEdId ) {
 
-	int n = keyFrame.size() - 1;
+	int n = keyFrame.size();
 	int t = 0;
 	char pngName[100];
-	Mat originFrame, surfaceFrame, resultFrame;
-	Size frameSize;
 
 	switch ( funcType ) {
 
 		case 0:
-
-			sprintf( pngName, "frameStream//%d.png", frameStId );
-			originFrame = imread( pngName );
-			frameSize = originFrame.size();
-			resultFrame = Mat( frameSize.height, frameSize.width - len, CV_8UC3 );
-
+			for ( int i = 0; i < keyFrame.size(); i++ ) cout << keyFrame[i] << endl;
 			for ( int i = frameStId; i < frameEdId; i++ ) {
 
-				if ( t < n && (i - frameStId) == keyFrame[t + 1] ) t++;
-				originFrame.copyTo( surfaceFrame );
+				sprintf( pngName, "frameStream//%d.png", i );
+				Mat originFrame = imread( pngName );
 
-				//cout << i - frameStId << " " << keyFrame[t] << endl;
+				if ( t < n && (i - frameStId) == keyFrame[t + 1] ) t++;
+				Size frameSize = originFrame.size();
+				Mat surfaceFrame = originFrame.clone();
+				Mat resultFrame = Mat( frameSize.height, frameSize.width - len, CV_8UC3 );
+
+				cout << i - frameStId << " " << keyFrame[t] << endl;
 
 				for ( int y = 0; y < frameSize.height; y++ ) {
 
 					int newX = 0;
-					int p = linkHead.ptr<int>( t )[y];
+					int p = linkHead[t][y];
 					for ( int x = 0; x < frameSize.width; x++ ) {
 
 						if ( p != -1 && x == link[p].y ) {
-
 							surfaceFrame.ptr<Vec3b>( y )[x] = Vec3b( 0, 0, 255 );
 							p = link[p].next;
 							continue;
 						} else {
-							resultFrame.ptr<Vec3b>( y )[newX++] = originFrame.ptr<Vec3b>( y )[x];
+							resultFrame.ptr<Vec3b>( y )[newX] = originFrame.ptr<Vec3b>( y )[x];
+							newX++;
 						}
 
 					}
-				}
+				} 
 
 				if ( (i - frameStId) == keyFrame[t] ) frames[t] = resultFrame.clone();
 
@@ -164,32 +161,29 @@ void saveFrame( vector<int> &keyFrame, int funcType, int len, vector<Mat> &frame
 				sprintf( pngName, "shrinkResult//%d.png", i );
 				imwrite( pngName, resultFrame );
 
-				sprintf( pngName, "frameStream//%d.png", i + 1 );
-				originFrame = imread( pngName );
-
 			}
 
 			break;
 
 		case 1:
 
-			sprintf( pngName, "tempMat//%d.png", frameStId );
-			originFrame = imread( pngName );
-			frameSize = originFrame.size();
-			resultFrame = Mat( frameSize.height, frameSize.width + len * 2, CV_8UC3 );
-
 			for ( int i = frameStId; i < frameEdId; i++ ) {
 
+				sprintf( pngName, "tempMat//%d.png", i );
+				Mat originFrame = imread( pngName );
+
 				if ( t < n && (i - frameStId) == keyFrame[t + 1] ) t++;
-				surfaceFrame = originFrame.clone();
+				Size frameSize = originFrame.size();
+				Mat surfaceFrame = originFrame.clone();
+				Mat resultFrame = Mat( frameSize.height, frameSize.width + len * 2, CV_8UC3 );
 
 				for ( int y = 0; y < frameSize.height; y++ ) {
 
 					int newX = 0;
-					int p = linkHead.ptr<int>( t )[y];
+					int p = linkHead[t][y];
 					for ( int x = 0; x < frameSize.width; x++ ) {
 
-						if ( p != -1 && x == link[p].y ) {
+						if ( x == link[p].y ) {
 
 							int x1 = (x == 0) ? x : x - 1;
 							int x2 = (x == frameSize.width - 1) ? x : x + 1;
@@ -230,9 +224,6 @@ void saveFrame( vector<int> &keyFrame, int funcType, int len, vector<Mat> &frame
 				sprintf( pngName, "extendResult//%d.png", i );
 				imwrite( pngName, resultFrame );
 
-				sprintf( pngName, "tempMat//%d.png", i + 1 );
-				originFrame = imread( pngName );
-
 			}
 
 			break;
@@ -267,7 +258,7 @@ bool writeVideo( int processId ) {
 	}
 
 	for ( int i = 0; i < INF; i++ ) {
-
+		
 		cout << i << endl;
 		outputVideo << mat;
 
@@ -277,7 +268,6 @@ bool writeVideo( int processId ) {
 	}
 	return true;
 }
-
 void writeFrameStream() {
 
 	char pngName[100];
@@ -301,7 +291,7 @@ void writeFrameStream() {
 		cout << " Combine Frame " << i << endl;
 		sprintf( pngName, "pixelTag//%d.png", i );
 		tagMat = imread( pngName );
-		if ( tagMat.empty() ) break;
+		if ( tagMat.empty() ) break; 
 
 		sprintf( pngName, "pixelEnergy//%d.png", i );
 		energyMat = imread( pngName );
@@ -386,7 +376,6 @@ void writeFrameStream() {
 	destroyAllWindows();
 
 }
-
 void copyFrame( int st, int ed ) {
 
 	cout << " Copy Frames --ING" << endl;
@@ -406,5 +395,4 @@ void copyFrame( int st, int ed ) {
 		imwrite( pngName, mat );
 	}
 }
-
 #endif

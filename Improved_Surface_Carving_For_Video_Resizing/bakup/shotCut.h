@@ -58,8 +58,6 @@ void segShotCut( vector<int> &shotArr ) {
 				}
 			}
 		}
-
-		if ( frameCount > 12000 ) break;
 	}
 	shotArr.push_back( frameCount );
 

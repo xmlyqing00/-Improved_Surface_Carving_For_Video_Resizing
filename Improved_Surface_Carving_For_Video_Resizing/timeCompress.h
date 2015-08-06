@@ -20,74 +20,78 @@ bool cmp_index( const pair<double, int> &p0, const pair<double, int> &p1 ) {
 	return p0.second < p1.second;
 }
 
-void timeCompress( vector<Mat> &pixelEnergy, vector<int> &keyFrame, int keyFrameNumLimit ) {
+void timeCompress( vector<Mat> &pixelEnergy, vector<int> &keyFrame, double keyFrameNumLimit ) {
 
 	cout << " Temporal Compress --ING" << endl;
 
-	int frameCount = pixelEnergy.size();
-	Size frameSize = pixelEnergy[0].size();
+	Mat diffFrame;
+	vector<int> diffArr;
+	vector< pair<int, int> > candidateArr;
+	int keyFrameNum = (int)(keyFrameNumLimit * pixelEnergy.size() + 1);
+	int normalFrameNum = 0;
 
-	vector<Mat> rotFrames;
-	Mat rotFrame = Mat( frameSize.width, frameCount, CV_8UC1 );
+	for ( int i = 1; i < (int)pixelEnergy.size(); i++ ) {
 
-	for ( int i = 0; i < frameSize.height; i++ ) {
-		for ( int y = 0; y < rotFrame.rows; y++ ) {
-			uchar *rowData = rotFrame.ptr<uchar>( y );
-			for ( int x = 0; x < rotFrame.cols; x++ ) {
-				rowData[x] = pixelEnergy[x].ptr<uchar>( i )[y];
+		absdiff( pixelEnergy[i], pixelEnergy[i - 1], diffFrame );
+		Scalar m = mean( diffFrame );
+
+		diffArr.push_back( (int)(m.val[0] + 0.5) );
+
+		if ( i >= 7 ) {
+
+			vector< pair<int, int> > sortArr;
+			pair<int, int> x;
+			for ( int j = i - 7; j < i; j++ ) {
+				x.first = diffArr[j];
+				x.second = j + 1;
+				sortArr.push_back( x );
+			}
+
+			std::sort( sortArr.begin(), sortArr.end() );
+
+			if ( sortArr[5].first != 0 ) {
+
+				if ( candidateArr.size() > 0 ) {
+					if ( candidateArr[candidateArr.size() - 1].second != sortArr[6].second ) {
+						sortArr[6].first = sortArr[6].first / sortArr[5].first;
+						candidateArr.push_back( sortArr[6] );
+						normalFrameNum++;
+					}
+				} else {
+					sortArr[6].first = sortArr[6].first / sortArr[5].first;
+					candidateArr.push_back( sortArr[6] );
+					normalFrameNum++;
+				}
 			}
 		}
-		rotFrames.push_back( rotFrame.clone() );
 	}
 
-	Size rotSize = rotFrames[0].size();
-	int rotCount = rotFrames.size();
-	Mat gradX, absGradX, tempMat;
-	vector<int> sum( rotSize.width, 0 );
+	std::sort( candidateArr.begin(), candidateArr.end() );
+	
+	keyFrame.push_back( 0 ); 
 
-	for ( int i = 0; i < rotCount; i++ ) {
+	int n = candidateArr.size();
+	if ( n == 0 ) return;
 
-		Sobel( rotFrames[i], gradX, CV_16S, 1, 0, 3 );
-		convertScaleAbs( gradX, absGradX );
-		absGradX = 0.5*absGradX;
-		absGradX.convertTo( tempMat, CV_8UC1 );
+	for ( int i = 1; i < keyFrameNum; i++ ) {
+		
+		if ( n - i < 0 ) break;
 
-		for ( int y = 0; y < rotSize.height; y++ ) {
-			for ( int x = 0; x < rotSize.width; x++ ) {
-				sum[x] += tempMat.ptr<uchar>( y )[x];
+		if ( candidateArr[n - i].first == 1 ) {
+			double gap = (double)normalFrameNum / ( keyFrameNum - i );
+			for ( double j = n - i; j > 0; j -= gap ) {
+				int k = (int)j;
+				if ( candidateArr[k].first == 0 ) break;
+				if ( keyFrame.size() > 0 && keyFrame[keyFrame.size() - 1] != candidateArr[k].second ) {
+					keyFrame.push_back( candidateArr[k].second );
+				}
+				//_ASSERT( _CrtCheckMemory() );
 			}
+			break;
 		}
+		keyFrame.push_back( candidateArr[n - i].second );
 	}
-
-	vector<double> v( rotSize.width, 0 );
-	int n = rotSize.width;
-	int m = min( (int)(0.1*n), keyFrameNumLimit );
-	//cout << m << endl;
-	for ( int x = 0; x < rotSize.width; x++ ) {
-
-		double temp = sum[x];
-		temp = temp / (double)(rotCount * rotSize.height);
-		v[x] = temp + 0.01;
-	}
-
-	v[0] = v[1];
-	vector< pair<double, int> > sortV;
-	for ( int i = n - 1; i > 0; i-- ) {
-
-		pair<double, int> oneV;
-		oneV.first = v[i] / v[i - 1];
-		oneV.second = i;
-		sortV.push_back( oneV );
-	}
-
-	sort( sortV.begin(), sortV.end(), cmp_v );
-	//for ( int i = 0; i < m; i++ ) cout << i << " " << sortV[i].first << " " << sortV[i].second << endl;
-	sort( sortV.begin(), sortV.begin() + m - 1, cmp_index );
-
-	keyFrame.clear();
-	keyFrame.push_back( 0 );
-	for ( int i = 0; i < m - 1; i++ ) keyFrame.push_back( sortV[i].second );
-
+	std::sort( keyFrame.begin(), keyFrame.end() );
 }
 
 void preserveKeyData( vector<int> &keyFrame, vector<Mat> &frames, vector<Mat> &pixelEnergy ) {

@@ -19,7 +19,7 @@ void buildPyramid( vector< vector<Mat> > &pyramidFrames, vector< vector<Mat> > &
 	pyramidEdgeProtect.clear();
 
 	for ( int pyramidIndex = 0; pyramidIndex < layerLimit; pyramidIndex++ ) {
-
+	
 		bool temporalRescale = false;
 
 		//if ( (pyramidIndex + 1) % 2 == 0 ) temporalRescale = true;
@@ -48,7 +48,7 @@ void buildPyramid( vector< vector<Mat> > &pyramidFrames, vector< vector<Mat> > &
 				edgeProtect.resize( countTemp );
 			}
 		}
-
+		
 		//cout << frames.size() << " " << frames[0].size().height << " " << frames[0].size().width << endl;
 		pyramidFrames.push_back( frames );
 		pyramidPixelEnergy.push_back( pixelEnergy );

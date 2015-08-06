@@ -12,8 +12,8 @@
 #include "baseFunction.h"
 
 void resizeVideo( vector<int> &keyFrame, vector<Mat> &frames, vector<Mat> &pixelEnergy, vector<Mat> &edgeProtect,
-				  int layerLimit, int &widthDeleted, int bandWidthDefault, int badCutLimit, int frameStId,
-				  int frameEdId, int threadsNum, int blockSize, int resizeType ) {
+				  int layerLimit, int &widthDeleted, int bandWidthDefault,
+				  int badCutLimit, int frameStId, int frameEdId, int resizeType ) {
 
 	if ( widthDeleted == 0 ) return;
 
@@ -25,19 +25,20 @@ void resizeVideo( vector<int> &keyFrame, vector<Mat> &frames, vector<Mat> &pixel
 	}
 	cout << " Produce " << widthDeleted << " Cut" << endl;
 
-	//vector<int> edgeHead;
-	//vector<typeEdge> edge;
+	vector<int> edgeHead;
+	vector<typeEdge> edge;
+	vector< vector<int> > removePts;
 
 	vector< vector<Mat> > pyramidFrames;
 	vector< vector<Mat> > pyramidPixelEnergy;
 	vector< vector<Mat> > pyramidEdgeProtect;
 
-	Mat linkHead = Mat_<int>( frames.size(), frames[0].rows, -1 );
+	vector< vector< int > > linkHead = vector< vector<int> >( frames.size(), vector<int>( frames[0].rows, -1 ) );
 	vector<typeLink> link;
-	Mat removePts;
+
 	int surfaceDeletedCount = 0;
 
-   	int cutCriterion = generalCrop( pixelEnergy, edgeProtect, widthDeleted );
+	int cutCriterion = generalCrop( pixelEnergy, edgeProtect, widthDeleted );
 
 	int cutAlert = 0;
 	bool isBuildPyramid = true;
@@ -52,73 +53,62 @@ void resizeVideo( vector<int> &keyFrame, vector<Mat> &frames, vector<Mat> &pixel
 
 		if ( (surfaceDeletedCount - 1) % 5 != 0 ) {
 			isBuildPyramid = false;
-		} else {
-			isBuildPyramid = true;
+		} else { 
+			isBuildPyramid = true; 
 		}
-
+		
 		buildPyramid( pyramidFrames, pyramidPixelEnergy, pyramidEdgeProtect, frames, pixelEnergy, edgeProtect, layerLimit, isBuildPyramid );
 
-		if ( isBuildPyramid ) {
+		if ( isBuildPyramid) {
 			bandLeft = 0;
 			bandWidth = pyramidFrames[layerLimit - 1][0].cols;
 			bandWidthDefault = min( bandWidthDefault, bandWidth );
 		}
 
+		//cout << surfaceDeletedCount << " " << bandLeft << endl;
+		
 		for ( int pyramidIndex = layerLimit - 1; pyramidIndex >= 0; pyramidIndex-- ) {
+
+			//cout << " >> In pyramid Index " << pyramidIndex << endl;
+			//int pyramidTime = clock();
 
 			if ( pyramidIndex > 0 && !isBuildPyramid ) continue;
 
-			//vector<int> num2pos;
-			int frameCount = pyramidFrames[pyramidIndex].size();
-			Size frameSize = pyramidFrames[pyramidIndex][0].size();
-			Grid* grid = new Grid( bandWidth, frameSize.height, frameCount, threadsNum, blockSize );
-			bandLeft = min( bandLeft, frameSize.width - bandWidth );
+			//printf( "%d %d -- %d %d\n", surfaceDeletedCount, pyramidIndex, bandLeft, bandWidth );
 
-			//buildGraph( pyramidFrames[pyramidIndex], pyramidPixelEnergy[pyramidIndex], pyramidEdgeProtect[pyramidIndex],
-			//			bandLeft, bandWidth, num2pos, edgeHead, edge );
-			//int clock3 = clock();
-			//cout << "3-2 " << clock3 - clock2 << endl;
-			buildGraph_Grid( bandWidth, frameSize.height, frameCount, pyramidPixelEnergy[pyramidIndex], pyramidEdgeProtect[pyramidIndex],
-							 bandLeft, bandWidth, grid );
-			//int cutEvaluate = maxFlow( edgeHead, edge );
-			//int clock4 = clock();
-			//cout << "4-3 " << clock4 - clock3 << endl;
-			grid->compute_maxflow();
-			//int clock5 = clock();
-			//cout << "5-4 " << clock5 - clock4 << endl;
-			int cutEvaluate = grid->get_flow();
-			//cout << cutEvaluate << endl;
+			vector<int> num2pos;
+
+			buildGraph( pyramidFrames[pyramidIndex], pyramidPixelEnergy[pyramidIndex], pyramidEdgeProtect[pyramidIndex],
+						bandLeft, bandWidth, num2pos, edgeHead, edge );
+
+			int cutEvaluate = maxFlow( edgeHead, edge );
+			//if ( surfaceDeletedCount == 3 ) {cutAlert = badCutLimit; break;}
 			if ( pyramidIndex == 0 ) {
 				//cout << " Cut / Terminate Evaluate : " << cutEvaluate << " / " << cutCriterion << endl;
 				if ( cutEvaluate > cutCriterion ) cutAlert++;
-				if ( cutAlert >= badCutLimit ) {
-					grid->delete_cap();
-					delete grid;
-					break;
-				}
+				if ( cutAlert >= badCutLimit ) break;
 			}
 
-			//removePts = vector< vector<int> >( frameCount, vector<int>( frameSize.height, 0 ) );
-			removePts = Mat_<int>( frameCount, frameSize.height, 0 );
-			//calcSurfaceBand( frameCount, frameSize, num2pos, edgeHead, edge, removePts );
-			calcSurfaceBand_Grid( frameCount, frameSize.height, bandWidth, bandLeft, grid, removePts );
-			//int clock6 = clock();
-			//cout << "6-5 " << clock6 - clock5 << endl;
+			int pyramidFrameCount = pyramidFrames[pyramidIndex].size();
+			Size pyramidFrameSize = pyramidFrames[pyramidIndex][0].size();
+			removePts = vector< vector<int> >( pyramidFrameCount, vector<int>( pyramidFrameSize.height, 0 ) );
+			calcSurfaceBand( pyramidFrames[pyramidIndex], num2pos, edgeHead, edge, removePts );
+
 			if ( pyramidIndex > 0 ) {
 				bandWidth = bandWidthDefault;
-				settleBand( removePts, bandLeft, bandWidth, frameSize.height, frameCount );
+				settleBand( removePts, bandLeft, bandWidth, pyramidFrameSize, pyramidFrameCount );
 			}
-			grid->delete_cap();
-			delete grid;
-			//clock7 = clock();
-			//cout << "7-6 " << clock7 - clock6 << endl;
+			//pyramidTime = clock() - pyramidTime;
+			//pyramidTime = (pyramidTime + 500) / 1000;
+			//printf( "  < In pyramid Time used : %d min %d sec\n", pyramidTime / 60, pyramidTime % 60 );
 		}
 
 		if ( cutAlert >= badCutLimit ) break;
 
 		surfaceCarving( frames, pixelEnergy, edgeProtect, removePts, linkHead, link );
-		//surfaceTime = clock() - surfaceTime;
-		//surfaceTime = (surfaceTime + 500) / 1000;
+
+		surfaceTime = clock() - surfaceTime;
+		surfaceTime = (surfaceTime + 500) / 1000;
 		//printf( " Time Used : %d min %d sec\n", surfaceTime / 60, surfaceTime % 60 );
 	}
 
@@ -194,7 +184,7 @@ void rotateVideo( vector<int> &keyFrame, vector<Mat> &frames, vector<Mat> &pixel
 	char pngName[100];
 	Mat rotateFrame, originFrame;
 
-	int n = keyFrame.size() - 1;
+	int n = keyFrame.size();
 	int t = 0;
 	for ( int i = frameStId; i < frameEdId; i++ ) {
 
