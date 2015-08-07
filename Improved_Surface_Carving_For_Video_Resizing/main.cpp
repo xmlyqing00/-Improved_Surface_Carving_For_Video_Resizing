@@ -24,7 +24,7 @@ int main( void ) {
 	help();
 
 	// func type
-	int funcType = 1;
+	int funcType = 2;
 	int videoId = 2;
 	int firstFrameId = 6404;
 

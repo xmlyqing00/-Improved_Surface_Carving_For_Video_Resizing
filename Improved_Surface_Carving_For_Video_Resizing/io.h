@@ -296,7 +296,7 @@ void writeFrameStream() {
 	combineSize.width = singleSize.width * 3 + seamWidth * 4;
 	combineSize.height = singleSize.height * 2 + seamWidth * 3;
 
-	for ( int i = 0; i < INF; i++ ) {
+	for ( int i = 7300; i < INF; i++ ) {
 
 		cout << " Combine Frame " << i << endl;
 		sprintf( pngName, "pixelTag//%d.png", i );
